@@ -27,8 +27,7 @@ MODULE_DEVICE_TABLE(pci, r8139dn_pci_id_table);
 
 static int r8139dn_pci_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 {
-    pr_info("Hello!\n");
-
+    pr_info("Device detected\n");
     if (pdev->revision != 0x10)
     {
         pr_err("This device (rtl8139 revision %02x) is not supported\n", pdev->revision);
@@ -49,7 +48,7 @@ static int r8139dn_pci_probe(struct pci_dev *pdev, const struct pci_device_id *i
 
 static void r8139dn_pci_remove(struct pci_dev *dev)
 {
-    pr_info("Bye!\n");
+    pr_info("Device left\n");
     unregister_netdev(r8139dn);
     free_netdev(r8139dn);
 }
@@ -62,4 +61,17 @@ static struct pci_driver r8139dn_pci_driver =
     .remove = r8139dn_pci_remove,
 };
 
-module_pci_driver(r8139dn_pci_driver);
+static int __init r8139dn_mod_init(void)
+{
+    pr_info("Hello!\n");
+    return pci_register_driver(&r8139dn_pci_driver);
+}
+
+static void __exit r8139dn_mod_exit(void)
+{
+    pci_unregister_driver(&r8139dn_pci_driver);
+    pr_info("Bye!\n");
+}
+
+module_init(r8139dn_mod_init);
+module_exit(r8139dn_mod_exit);
