@@ -27,6 +27,8 @@ MODULE_DEVICE_TABLE(pci, r8139dn_pci_id_table);
 
 static int r8139dn_pci_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 {
+    int err;
+
     pr_info("Device detected\n");
     if (pdev->revision != 0x10)
     {
@@ -41,7 +43,12 @@ static int r8139dn_pci_probe(struct pci_dev *pdev, const struct pci_device_id *i
     }
 
     r8139dn->netdev_ops = &r8139dn_ops;
-    register_netdev(r8139dn);
+
+    if (err = register_netdev(r8139dn))
+    {
+        free_netdev(r8139dn);
+        return err;
+    }
 
     return 0;
 }
