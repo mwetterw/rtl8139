@@ -4,3 +4,4 @@ Module.symvers
 *.cmd
 *.mod.*
 *.o
+.tmp_versions/
