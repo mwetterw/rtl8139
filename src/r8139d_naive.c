@@ -1,3 +1,5 @@
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
+
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/init.h>
@@ -23,16 +25,23 @@ static struct pci_device_id r8139dn_pci_id_table[] =
 
 MODULE_DEVICE_TABLE(pci, r8139dn_pci_id_table);
 
-static int r8139dn_pci_probe(struct pci_dev *dev, const struct pci_device_id *id)
+static int r8139dn_pci_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 {
-    printk(KERN_INFO "rtl8139d naive driver, Hello!\n");
+    pr_info("Hello!\n");
+
+    if (pdev->revision != 0x10)
+    {
+        pr_err("This device (rtl8139 revision %02x) is not supported\n", pdev->revision);
+        return -ENODEV;
+    }
+
     r8139dn = alloc_etherdev(0);
     if (!r8139dn)
     {
         return -ENOMEM;
     }
 
-    r8139dn -> netdev_ops = &r8139dn_ops;
+    r8139dn->netdev_ops = &r8139dn_ops;
     register_netdev(r8139dn);
 
     return 0;
@@ -40,7 +49,7 @@ static int r8139dn_pci_probe(struct pci_dev *dev, const struct pci_device_id *id
 
 static void r8139dn_pci_remove(struct pci_dev *dev)
 {
-    printk(KERN_INFO "rtl8139d naive driver, Bye!\n");
+    pr_info("Bye!\n");
     unregister_netdev(r8139dn);
     free_netdev(r8139dn);
 }
