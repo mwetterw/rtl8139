@@ -44,18 +44,29 @@ static int r8139dn_pci_probe(struct pci_dev *pdev, const struct pci_device_id *i
 
     r8139dn->netdev_ops = &r8139dn_ops;
 
-    if (err = register_netdev(r8139dn))
+    err = register_netdev(r8139dn);
+    if (err)
     {
-        free_netdev(r8139dn);
-        return err;
+        goto free_netdev;
+    }
+
+    err = pci_enable_device(pdev);
+    if (err)
+    {
+        goto free_netdev;
     }
 
     return 0;
+
+free_netdev:
+    free_netdev(r8139dn);
+    return err;
 }
 
-static void r8139dn_pci_remove(struct pci_dev *dev)
+static void r8139dn_pci_remove(struct pci_dev *pdev)
 {
     pr_info("Device left\n");
+    pci_disable_device(pdev);
     unregister_netdev(r8139dn);
     free_netdev(r8139dn);
 }
