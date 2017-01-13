@@ -11,8 +11,6 @@ MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Martin Wetterwald");
 MODULE_DESCRIPTION("A learning-purpose naive Realtek 8139D driver implementation");
 
-static struct net_device * r8139dn;
-
 static struct net_device_ops r8139dn_ops =
 {
 };
@@ -32,6 +30,7 @@ MODULE_DEVICE_TABLE(pci, r8139dn_pci_id_table);
 static int r8139dn_pci_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 {
     int err;
+    struct net_device * dev;
 
     pr_info("Device detected\n");
 
@@ -43,16 +42,20 @@ static int r8139dn_pci_probe(struct pci_dev *pdev, const struct pci_device_id *i
     }
 
     // Allocate a eth device
-    r8139dn = alloc_etherdev(0);
-    if (!r8139dn)
+    dev = alloc_etherdev(sizeof(*priv));
+    if (!dev)
     {
         return -ENOMEM;
     }
 
-    r8139dn->netdev_ops = &r8139dn_ops;
+    // From the PCI device, we want to be able to retrieve our network device
+    // So we store it. Later we can retrieve it with pci_get_drvdata
+    pci_set_drvdata(pdev, dev);
+
+    dev->netdev_ops = &r8139dn_ops;
 
     // Tell the kernel to show our eth interface to userspace (in ifconfig -a)
-    err = register_netdev(r8139dn);
+    err = register_netdev(dev);
     if (err)
     {
         goto free_netdev;
@@ -68,7 +71,7 @@ static int r8139dn_pci_probe(struct pci_dev *pdev, const struct pci_device_id *i
     return 0;
 
 free_netdev:
-    free_netdev(r8139dn);
+    free_netdev(dev);
     return err;
 }
 
@@ -76,16 +79,19 @@ free_netdev:
 // This will also be the case if our module is unloaded from the kernel.
 static void r8139dn_pci_remove(struct pci_dev *pdev)
 {
+    struct net_device * dev;
+    dev = pci_get_drvdata(pdev);
+
     pr_info("Device left\n");
 
     // Disable our PCI device
     pci_disable_device(pdev);
 
     // Tell the kernel our eth interface doesn't exist anymore (will disappear from ifconfig -a)
-    unregister_netdev(r8139dn);
+    unregister_netdev(dev);
 
     // Free the structure reprensenting our eth interface
-    free_netdev(r8139dn);
+    free_netdev(dev);
 }
 
 // r8139dn_pci_driver represents our PCI driver.
