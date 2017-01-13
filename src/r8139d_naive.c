@@ -29,7 +29,7 @@ struct r8139dn_priv
 };
 
 // r8139dn_ops stores fonctors to our driver actions,
-// so that the kernel can call the relevant one when it needed
+// so that the kernel can call the relevant one when needed
 static struct net_device_ops r8139dn_ops =
 {
 };
@@ -39,7 +39,7 @@ static struct net_device_ops r8139dn_ops =
 static int r8139dn_pci_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 {
     int err;
-    struct net_device * dev;
+    struct net_device * ndev;
     struct r8139dn_priv *priv;
 
     pr_info("Device detected\n");
@@ -52,26 +52,26 @@ static int r8139dn_pci_probe(struct pci_dev *pdev, const struct pci_device_id *i
     }
 
     // Allocate a eth device
-    dev = alloc_etherdev(sizeof(*priv));
-    if (!dev)
+    ndev = alloc_etherdev(sizeof(*priv));
+    if (!ndev)
     {
         return -ENOMEM;
     }
 
     // From the PCI device, we want to be able to retrieve our network device
     // So we store it. Later we can retrieve it with pci_get_drvdata
-    pci_set_drvdata(pdev, dev);
+    pci_set_drvdata(pdev, ndev);
 
     // Add our net device as a leaf to our PCI bus in /sys tree
-    SET_NETDEV_DEV(dev, &pdev->dev);
+    SET_NETDEV_DEV(ndev, &pdev->dev);
 
-    priv = netdev_priv(dev);
+    priv = netdev_priv(ndev);
     priv->pdev = pdev;
 
-    dev->netdev_ops = &r8139dn_ops;
+    ndev->netdev_ops = &r8139dn_ops;
 
     // Tell the kernel to show our eth interface to userspace (in ifconfig -a)
-    err = register_netdev(dev);
+    err = register_netdev(ndev);
     if (err)
     {
         goto free_netdev;
@@ -87,7 +87,7 @@ static int r8139dn_pci_probe(struct pci_dev *pdev, const struct pci_device_id *i
     return 0;
 
 free_netdev:
-    free_netdev(dev);
+    free_netdev(ndev);
     return err;
 }
 
@@ -95,8 +95,9 @@ free_netdev:
 // This will also be the case if our module is unloaded from the kernel.
 static void r8139dn_pci_remove(struct pci_dev *pdev)
 {
-    struct net_device * dev;
-    dev = pci_get_drvdata(pdev);
+    // Retrieve the network device from the PCI device
+    struct net_device * ndev;
+    ndev = pci_get_drvdata(pdev);
 
     pr_info("Device left\n");
 
@@ -104,10 +105,10 @@ static void r8139dn_pci_remove(struct pci_dev *pdev)
     pci_disable_device(pdev);
 
     // Tell the kernel our eth interface doesn't exist anymore (will disappear from ifconfig -a)
-    unregister_netdev(dev);
+    unregister_netdev(ndev);
 
     // Free the structure reprensenting our eth interface
-    free_netdev(dev);
+    free_netdev(ndev);
 }
 
 // r8139dn_pci_driver represents our PCI driver.
