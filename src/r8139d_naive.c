@@ -62,6 +62,9 @@ static int r8139dn_pci_probe(struct pci_dev *pdev, const struct pci_device_id *i
     // So we store it. Later we can retrieve it with pci_get_drvdata
     pci_set_drvdata(pdev, dev);
 
+    // Add our net device as a leaf to our PCI bus in /sys tree
+    SET_NETDEV_DEV(dev, &pdev->dev);
+
     priv = netdev_priv(dev);
     priv->pdev = pdev;
 
