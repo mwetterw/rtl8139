@@ -11,10 +11,6 @@ MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Martin Wetterwald");
 MODULE_DESCRIPTION("A learning-purpose naive Realtek 8139D driver implementation");
 
-static struct net_device_ops r8139dn_ops =
-{
-};
-
 // This is the list of devices we claim to be the driver for
 static struct pci_device_id r8139dn_pci_id_table[] =
 {
@@ -25,12 +21,26 @@ static struct pci_device_id r8139dn_pci_id_table[] =
 // Tell userspace what device this driver is for
 MODULE_DEVICE_TABLE(pci, r8139dn_pci_id_table);
 
+// r8139dn_priv is a struct we can always fetch from the network device
+// We can store anything that makes our life easier.
+struct r8139dn_priv
+{
+    struct pci_dev *pdev;
+};
+
+// r8139dn_ops stores fonctors to our driver actions,
+// so that the kernel can call the relevant one when it needed
+static struct net_device_ops r8139dn_ops =
+{
+};
+
 // r8139dn_pci_probe is called by the kernel when the device we want
 // has been detected somewhere on the PCI Bus.
 static int r8139dn_pci_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 {
     int err;
     struct net_device * dev;
+    struct r8139dn_priv *priv;
 
     pr_info("Device detected\n");
 
@@ -51,6 +61,9 @@ static int r8139dn_pci_probe(struct pci_dev *pdev, const struct pci_device_id *i
     // From the PCI device, we want to be able to retrieve our network device
     // So we store it. Later we can retrieve it with pci_get_drvdata
     pci_set_drvdata(pdev, dev);
+
+    priv = netdev_priv(dev);
+    priv->pdev = pdev;
 
     dev->netdev_ops = &r8139dn_ops;
 
