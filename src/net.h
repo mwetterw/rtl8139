@@ -1,6 +1,8 @@
 #include <linux/netdevice.h>
 #include <linux/etherdevice.h>
 
+#include "r8139dn.h"
+
 extern struct net_device_ops r8139dn_ops;
 
 // r8139dn_priv is a struct we can always fetch from the network device

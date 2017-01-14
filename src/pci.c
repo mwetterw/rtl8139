@@ -35,7 +35,7 @@ static void __r8139dn_pci_disable ( struct pci_dev * pdev )
 // has been detected somewhere on the PCI Bus.
 int r8139dn_pci_probe ( struct pci_dev * pdev, const struct pci_device_id * id )
 {
-    int err;
+    int err, len;
     struct net_device * ndev;
 
     pr_info ( "Device detected\n" );
@@ -61,12 +61,22 @@ int r8139dn_pci_probe ( struct pci_dev * pdev, const struct pci_device_id * id )
         goto err_init;
     }
 
-    // Mark all regions (BAR0 -> BAR5) as belonging to us
+    // Mark PCI regions (BAR0 -> BAR1) as belonging to us
     // An entry in /proc/iomem and /proc/ioports will appear
+    // BAR0 is IOAR and BAR1 is MEMAR
     err = pci_request_regions ( pdev, KBUILD_MODNAME );
     if ( err )
     {
         goto err_init;
+    }
+
+    // We need to ensure the region given is big enough for our device
+    len = pci_resource_len ( pdev, R8139DN_MEMAR );
+    if ( len < R8139DN_IO_SIZE )
+    {
+        pr_err ( "Insufficient region size. Minimum required: %do, got %do.\n", R8139DN_IO_SIZE, len );
+        err = -ENODEV;
+        goto err_resource;
     }
 
     // Tell the kernel to show our eth interface to userspace (in ifconfig -a)
@@ -81,10 +91,9 @@ int r8139dn_pci_probe ( struct pci_dev * pdev, const struct pci_device_id * id )
 
     return 0;
 
-err_register:
-    free_netdev ( ndev );
-err_init:
-    __r8139dn_pci_disable ( pdev );
+err_register: free_netdev ( ndev );
+err_resource: pci_release_regions ( pdev );
+err_init:     __r8139dn_pci_disable ( pdev );
     return err;
 }
 
@@ -105,7 +114,7 @@ void r8139dn_pci_remove ( struct pci_dev * pdev )
     // Tell the kernel our eth interface doesn't exist anymore (will disappear from ifconfig -a)
     unregister_netdev ( ndev );
 
-    // Release ownership of all regions (BAR0 -> BAR5)
+    // Release ownership of PCI regions (BAR0 -> BAR1)
     // Our entry in /proc/iomem and /proc/ioports will disappear
     pci_release_regions ( pdev );
 
