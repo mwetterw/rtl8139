@@ -10,4 +10,4 @@ struct r8139dn_priv
     struct pci_dev * pdev;
 };
 
-int r8139dn_net_init ( struct net_device * * pndev, struct pci_dev * pdev );
+struct net_device * r8139dn_net_init ( struct pci_dev * pdev );

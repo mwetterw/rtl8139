@@ -54,9 +54,10 @@ int r8139dn_pci_probe ( struct pci_dev * pdev, const struct pci_device_id * id )
         return err;
     }
 
-    err = r8139dn_net_init ( &ndev, pdev );
-    if ( err )
+    ndev = r8139dn_net_init ( pdev );
+    if ( IS_ERR ( ndev ) )
     {
+        err = PTR_ERR ( ndev );
         goto err_init;
     }
 

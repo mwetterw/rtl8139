@@ -5,19 +5,17 @@
 // so that the kernel can call the relevant one when needed
 struct net_device_ops r8139dn_ops = { };
 
-int r8139dn_net_init ( struct net_device * * pndev, struct pci_dev * pdev )
+struct net_device * r8139dn_net_init ( struct pci_dev * pdev )
 {
     struct net_device * ndev;
     struct r8139dn_priv * priv;
 
     // Allocate a eth device
-    * pndev = alloc_etherdev ( sizeof ( * priv ) );
-    if ( ! * pndev )
+    ndev = alloc_etherdev ( sizeof ( * priv ) );
+    if ( ! ndev )
     {
-        return -ENOMEM;
+        return ERR_PTR ( -ENOMEM );
     }
-
-    ndev = * pndev;
 
     priv = netdev_priv ( ndev );
     priv -> pdev = pdev;
@@ -31,5 +29,5 @@ int r8139dn_net_init ( struct net_device * * pndev, struct pci_dev * pdev )
     // So we store it. Later we can retrieve it with pci_get_drvdata
     pci_set_drvdata ( pdev, ndev );
 
-    return 0;
+    return ndev;
 }
