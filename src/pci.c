@@ -61,6 +61,14 @@ int r8139dn_pci_probe ( struct pci_dev * pdev, const struct pci_device_id * id )
         goto err_init;
     }
 
+    // Mark all regions (BAR0 -> BAR5) as belonging to us
+    // An entry in /proc/iomem and /proc/ioports will appear
+    err = pci_request_regions ( pdev, KBUILD_MODNAME );
+    if ( err )
+    {
+        goto err_init;
+    }
+
     // Tell the kernel to show our eth interface to userspace (in ifconfig -a)
     err = register_netdev ( ndev );
     if ( err )
@@ -97,7 +105,11 @@ void r8139dn_pci_remove ( struct pci_dev * pdev )
     // Tell the kernel our eth interface doesn't exist anymore (will disappear from ifconfig -a)
     unregister_netdev ( ndev );
 
-    // Free the structure reprensenting our eth interface
+    // Release ownership of all regions (BAR0 -> BAR5)
+    // Our entry in /proc/iomem and /proc/ioports will disappear
+    pci_release_regions ( pdev );
+
+    // Free the structure representing our eth interface
     free_netdev ( ndev );
 
     __r8139dn_pci_disable ( pdev );
