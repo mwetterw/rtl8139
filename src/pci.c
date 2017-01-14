@@ -67,6 +67,9 @@ int r8139dn_pci_probe ( struct pci_dev * pdev, const struct pci_device_id * id )
         goto err_register;
     }
 
+    // Enable DMA by setting master bit in PCI_COMMAND register
+    pci_set_master ( pdev );
+
     return 0;
 
 err_register:
@@ -80,11 +83,15 @@ err_init:
 // This will also be the case if our module is unloaded from the kernel.
 void r8139dn_pci_remove ( struct pci_dev * pdev )
 {
-    // Retrieve the network device from the PCI device
     struct net_device * ndev;
-    ndev = pci_get_drvdata ( pdev );
 
     pr_info ( "Device left\n" );
+
+    // Retrieve the network device from the PCI device
+    ndev = pci_get_drvdata ( pdev );
+
+    // Disable DMA by clearing master bit in PCI_COMMAND register
+    pci_clear_master ( pdev );
 
     // Tell the kernel our eth interface doesn't exist anymore (will disappear from ifconfig -a)
     unregister_netdev ( ndev );
