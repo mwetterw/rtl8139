@@ -52,6 +52,12 @@ enum
     ERSR      = 0x36,
 
     CR        = 0x37,
+        // Reserved 7 -> 5
+        CR_RST   = (1 << 4),
+        CR_RE    = (1 << 3),
+        CR_TE    = (1 << 2),
+        // Reserved      1
+        CR_BUFE  = (1 << 0),
 
     CAPR      = 0x38,
     CBR       = 0x3a,
