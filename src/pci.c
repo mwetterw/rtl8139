@@ -38,6 +38,8 @@ int r8139dn_pci_probe ( struct pci_dev * pdev, const struct pci_device_id * id )
     int err;
     unsigned int len;
     struct net_device * ndev;
+    struct r8139dn_priv * priv;
+    void __iomem * mmio;
 
     pr_info ( "Device detected\n" );
 
@@ -88,6 +90,21 @@ int r8139dn_pci_probe ( struct pci_dev * pdev, const struct pci_device_id * id )
         goto err_resource;
     }
 
+    // It's finally the time to map the device memory to our virtual memory space! :)
+    mmio = pci_iomap ( pdev, R8139DN_MEMAR, len );
+    if ( ! mmio )
+    {
+        pr_err ( "Unable to map the MMIO.\n" );
+        err = -ENODEV;
+        goto err_resource;
+    }
+
+    // Enable DMA by setting master bit in PCI_COMMAND register
+    pci_set_master ( pdev );
+
+    priv = netdev_priv ( ndev );
+    priv -> mmio = mmio;
+
     // Tell the kernel to show our eth interface to userspace (in ifconfig -a)
     err = register_netdev ( ndev );
     if ( err )
@@ -95,14 +112,16 @@ int r8139dn_pci_probe ( struct pci_dev * pdev, const struct pci_device_id * id )
         goto err_register;
     }
 
-    // Enable DMA by setting master bit in PCI_COMMAND register
-    pci_set_master ( pdev );
-
     return 0;
 
-err_register: free_netdev ( ndev );
-err_resource: pci_release_regions ( pdev );
-err_init:     __r8139dn_pci_disable ( pdev );
+err_register:
+    pci_clear_master ( pdev );
+    pci_iounmap ( pdev, mmio );
+    free_netdev ( ndev );
+err_resource:
+    pci_release_regions ( pdev );
+err_init:
+    __r8139dn_pci_disable ( pdev );
     return err;
 }
 
@@ -111,17 +130,24 @@ err_init:     __r8139dn_pci_disable ( pdev );
 void r8139dn_pci_remove ( struct pci_dev * pdev )
 {
     struct net_device * ndev;
+    struct r8139dn_priv * priv;
 
     pr_info ( "Device left\n" );
 
     // Retrieve the network device from the PCI device
     ndev = pci_get_drvdata ( pdev );
 
-    // Disable DMA by clearing master bit in PCI_COMMAND register
-    pci_clear_master ( pdev );
+    // Retrieve our private data structure from the network device
+    priv = netdev_priv ( ndev );
 
     // Tell the kernel our eth interface doesn't exist anymore (will disappear from ifconfig -a)
     unregister_netdev ( ndev );
+
+    // Disable DMA by clearing master bit in PCI_COMMAND register
+    pci_clear_master ( pdev );
+
+    // Unmap our virtual memory from the device's MMIO memory
+    pci_iounmap ( pdev, priv -> mmio );
 
     // Release ownership of PCI regions (BAR0 -> BAR1)
     // Our entry in /proc/iomem and /proc/ioports will disappear
