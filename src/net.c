@@ -31,6 +31,9 @@ int r8139dn_net_init ( struct pci_dev * pdev, void __iomem * mmio )
     // Ask the network card to do a soft reset
     r8139dn_hw_reset ( priv );
 
+    // Retrieve MAC from device and tell the kernel
+    r8139dn_hw_mac_load_to_kernel ( ndev );
+
     // Tell the kernel to show our eth interface to userspace (in ifconfig -a)
     err = register_netdev ( ndev );
     if ( err )

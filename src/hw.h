@@ -5,6 +5,9 @@
 #include <linux/io.h>
 #include "net.h"
 
+void r8139dn_hw_reset ( struct r8139dn_priv * priv );
+void r8139dn_hw_mac_load_to_kernel ( struct net_device * ndev );
+
 // BAR, Base Address Registers in the PCI Configuration Space
 enum
 {
@@ -18,18 +21,18 @@ enum
 
 enum
 {
-    IDR0      = 0x00,
-    IDR1      = 0x01,
-    IDR2      = 0x02,
-    IDR3      = 0x03,
-    IDR4      = 0x04,
+    IDR0      = 0x00, // ID Registers.
+    IDR1      = 0x01, // W access only 32. R access 8, 16 or 32.
+    IDR2      = 0x02, // They contain the MAC address currently
+    IDR3      = 0x03, // configured. The initial value is auto-loaded
+    IDR4      = 0x04, // from EEPROM.
     IDR5      = 0x05,
 
     // Reserved 0x06,
     // Reserved 0x07,
 
-    MAR0      = 0x08,
-    MAR1      = 0x09,
+    MAR0      = 0x08, // Multicast Registers
+    MAR1      = 0x09, // W access only 32. R access 8, 16 or 32.
     MAR2      = 0x0a,
     MAR3      = 0x0b,
     MAR4      = 0x0c,
@@ -164,8 +167,5 @@ enum
 #define r8139dn_w8(reg,val)  iowrite8  ( ( val ), priv->mmio + ( reg ) )
 #define r8139dn_w16(reg,val) iowrite16 ( ( val ), priv->mmio + ( reg ) )
 #define r8139dn_w32(reg,val) iowrite32 ( ( val ), priv->mmio + ( reg ) )
-
-
-void r8139dn_hw_reset ( struct r8139dn_priv * priv );
 
 #endif
