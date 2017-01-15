@@ -35,7 +35,8 @@ static void __r8139dn_pci_disable ( struct pci_dev * pdev )
 // has been detected somewhere on the PCI Bus.
 int r8139dn_pci_probe ( struct pci_dev * pdev, const struct pci_device_id * id )
 {
-    int err, len;
+    int err;
+    unsigned int len;
     struct net_device * ndev;
 
     pr_info ( "Device detected\n" );
@@ -75,6 +76,14 @@ int r8139dn_pci_probe ( struct pci_dev * pdev, const struct pci_device_id * id )
     if ( len < R8139DN_IO_SIZE )
     {
         pr_err ( "Insufficient region size. Minimum required: %do, got %do.\n", R8139DN_IO_SIZE, len );
+        err = -ENODEV;
+        goto err_resource;
+    }
+
+    // We want to make sure the region we believe is MEMAR really is.
+    if ( ! ( pci_resource_flags ( pdev, R8139DN_MEMAR ) & IORESOURCE_MEM ) )
+    {
+        pr_err ( "Invalid region type. This should be a MMIO region.\n" );
         err = -ENODEV;
         goto err_resource;
     }
