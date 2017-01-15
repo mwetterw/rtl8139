@@ -1,3 +1,10 @@
+#ifndef _R8139DN_HW_H
+#define _R8139DN_HW_H
+
+#include <linux/netdevice.h>
+#include <linux/io.h>
+#include "net.h"
+
 // BAR, Base Address Registers in the PCI Configuration Space
 enum
 {
@@ -151,3 +158,8 @@ enum
 #define r8139dn_w8(reg,val)  iowrite8  ( ( val ), priv->mmio + ( reg ) )
 #define r8139dn_w16(reg,val) iowrite16 ( ( val ), priv->mmio + ( reg ) )
 #define r8139dn_w32(reg,val) iowrite32 ( ( val ), priv->mmio + ( reg ) )
+
+
+void r8139dn_hw_reset ( struct r8139dn_priv * priv );
+
+#endif

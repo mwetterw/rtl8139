@@ -1,7 +1,9 @@
+#ifndef _R8139DN_NET_H
+#define _R8139DN_NET_H
+
 #include <linux/netdevice.h>
 #include <linux/etherdevice.h>
-
-#include "r8139dn.h"
+#include <linux/pci.h>
 
 extern struct net_device_ops r8139dn_ops;
 
@@ -13,4 +15,6 @@ struct r8139dn_priv
     void __iomem * mmio;
 };
 
-struct net_device * r8139dn_net_init ( struct pci_dev * pdev );
+int r8139dn_net_init ( struct pci_dev * pdev, void __iomem * mmio );
+
+#endif

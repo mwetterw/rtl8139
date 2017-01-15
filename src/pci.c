@@ -1,5 +1,6 @@
 #include "pci.h"
 #include "net.h"
+#include "hw.h"
 
 #include <linux/module.h>
 
@@ -30,8 +31,6 @@ int r8139dn_pci_probe ( struct pci_dev * pdev, const struct pci_device_id * id )
 {
     int err;
     unsigned int len;
-    struct net_device * ndev;
-    struct r8139dn_priv * priv;
     void __iomem * mmio;
 
     pr_info ( "Device detected\n" );
@@ -48,13 +47,6 @@ int r8139dn_pci_probe ( struct pci_dev * pdev, const struct pci_device_id * id )
     if ( err )
     {
         return err;
-    }
-
-    ndev = r8139dn_net_init ( pdev );
-    if ( IS_ERR ( ndev ) )
-    {
-        err = PTR_ERR ( ndev );
-        goto err_init;
     }
 
     // Mark PCI regions (BAR0 -> BAR1) as belonging to us
@@ -95,11 +87,8 @@ int r8139dn_pci_probe ( struct pci_dev * pdev, const struct pci_device_id * id )
     // Enable DMA by setting master bit in PCI_COMMAND register
     pci_set_master ( pdev );
 
-    priv = netdev_priv ( ndev );
-    priv -> mmio = mmio;
-
-    // Tell the kernel to show our eth interface to userspace (in ifconfig -a)
-    err = register_netdev ( ndev );
+    // Initialize and register our network interface :)
+    err = r8139dn_net_init ( pdev, mmio );
     if ( err )
     {
         goto err_register;
@@ -110,7 +99,6 @@ int r8139dn_pci_probe ( struct pci_dev * pdev, const struct pci_device_id * id )
 err_register:
     pci_clear_master ( pdev );
     pci_iounmap ( pdev, mmio );
-    free_netdev ( ndev );
 err_resource:
     pci_release_regions ( pdev );
 err_init:
