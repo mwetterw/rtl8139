@@ -24,13 +24,6 @@ struct pci_driver r8139dn_pci_driver =
     .remove = r8139dn_pci_remove,
 };
 
-static void __r8139dn_pci_disable ( struct pci_dev * pdev )
-{
-    // Disable our PCI device
-    pci_set_power_state ( pdev, PCI_D3cold );
-    pci_disable_device ( pdev );
-}
-
 // r8139dn_pci_probe is called by the kernel when the device we want
 // has been detected somewhere on the PCI Bus.
 int r8139dn_pci_probe ( struct pci_dev * pdev, const struct pci_device_id * id )
@@ -121,7 +114,7 @@ err_register:
 err_resource:
     pci_release_regions ( pdev );
 err_init:
-    __r8139dn_pci_disable ( pdev );
+    pci_disable_device ( pdev );
     return err;
 }
 
@@ -156,5 +149,6 @@ void r8139dn_pci_remove ( struct pci_dev * pdev )
     // Free the structure representing our eth interface
     free_netdev ( ndev );
 
-    __r8139dn_pci_disable ( pdev );
+    // Signal to the system that we don't use this PCI device anymore
+    pci_disable_device ( pdev );
 }
