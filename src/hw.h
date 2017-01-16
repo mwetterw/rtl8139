@@ -96,6 +96,7 @@ enum
 
     TSAD      = 0x60,
 
+    // PHY registers START
     BMCR      = 0x62,
     BMSR      = 0x64,
 
@@ -109,8 +110,9 @@ enum
 
     NWAYTR    = 0x70,
 
-    REC       = 0x72,
+    RXERCNT   = 0x72,
     CSCR      = 0x74,
+    // PHY registers END
 
     // Reserved 0x76,
     // Reserved 0x77,
