@@ -55,7 +55,19 @@ enum
     TSD1      = 0x14,
     TSD2      = 0x18,
     TSD3      = 0x1c,
+        TSD_CRS    = ( 1 << 31 ),
+        TSD_TABT   = ( 1 << 30 ),
+        TSD_OWC    = ( 1 << 29 ),
+        TSD_CDH    = ( 1 << 28 ),
+        TSD_NCC    = ( 0xff << 24 ),
+        // Reserved 23 -> 22
+        TSD_ERTXTH = ( 0x3f << 16 ),
+        TSD_TOK    = ( 1 << 15 ),
+        TSD_TUN    = ( 1 << 14 ),
+        TSD_OWN    = ( 1 << 13 ),
+        TSD_SIZE   = ( 0x1fff ),
 
+    // Transmit Start Address of Descriptor
     TSAD0     = 0x20,
     TSAD1     = 0x24,
     TSAD2     = 0x28,
@@ -127,6 +139,7 @@ enum
 
     // Reserved 0x5f,
 
+    // Transmit Status of All Descriptors
     TSAD      = 0x60,
 
     // PHY registers START
