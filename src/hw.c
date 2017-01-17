@@ -36,3 +36,20 @@ void r8139dn_hw_mac_load_to_kernel ( struct net_device * ndev )
     ( ( u32 * ) ndev -> dev_addr ) [ 0 ] = r8139dn_r32 ( IDR0 );
     ( ( u16 * ) ndev -> dev_addr ) [ 2 ] = r8139dn_r16 ( IDR4 );
 }
+
+// Enable the transmitter
+// Set up the transmission settings
+void r8139dn_hw_enable_and_configure_tx ( struct r8139dn_priv * priv )
+{
+    // Turn the transmitter on
+    r8139dn_w8 ( CR, CR_TE );
+
+    // Set up the TX settings
+    r8139dn_w32 ( TCR, TCR_IFG_DEFAULT | TCR_MXDMA_1024 );
+}
+
+// Disable transceiver (TX & RX)
+void r8139dn_hw_disable_transceiver ( struct r8139dn_priv * priv )
+{
+    r8139dn_w8 ( CR, 0 );
+}

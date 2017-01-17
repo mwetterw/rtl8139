@@ -7,6 +7,8 @@
 
 void r8139dn_hw_reset ( struct r8139dn_priv * priv );
 void r8139dn_hw_mac_load_to_kernel ( struct net_device * ndev );
+void r8139dn_hw_enable_and_configure_tx ( struct r8139dn_priv * priv );
+void r8139dn_hw_disable_transceiver ( struct r8139dn_priv * priv );
 
 // BAR, Base Address Registers in the PCI Configuration Space
 enum
@@ -48,6 +50,7 @@ enum
     MAR6      = 0x0e,
     MAR7      = 0x0f,
 
+    // Transmission Status Registers
     TSD0      = 0x10,
     TSD1      = 0x14,
     TSD2      = 0x18,
@@ -62,13 +65,14 @@ enum
     ERBCR     = 0x34,
     ERSR      = 0x36,
 
+    // Command Register
     CR        = 0x37,
         // Reserved 7 -> 5
-        CR_RST   = (1 << 4),
-        CR_RE    = (1 << 3),
-        CR_TE    = (1 << 2),
-        // Reserved      1
-        CR_BUFE  = (1 << 0),
+        CR_RST   = ( 1 << 4 ),
+        CR_RE    = ( 1 << 3 ),
+        CR_TE    = ( 1 << 2 ),
+        // Reserved       1
+        CR_BUFE  = ( 1 << 0 ),
 
     CAPR      = 0x38,
     CBR       = 0x3a,
@@ -76,7 +80,28 @@ enum
     IMR       = 0x3c,
     ISR       = 0x3e,
 
+    // TX Configuration Register
     TCR       = 0x40,
+        // Interframe Gap Time
+        TCR_IFG_SHIFT       = 24,
+            TCR_IFG_84      = ( 0 << TCR_IFG_SHIFT ), // 8.4 us / 840 ns
+            TCR_IFG_88      = ( 1 << TCR_IFG_SHIFT ), // 8.8 us / 880 ns
+            TCR_IFG_92      = ( 2 << TCR_IFG_SHIFT ), // 9.2 us / 920 ns
+            TCR_IFG_96      = ( 3 << TCR_IFG_SHIFT ), // 9.6 us / 960 ns
+            TCR_IFG_DEFAULT = TCR_IFG_96,
+        // Append FCS at the end of the frame?
+        TCR_CRC             = ( 1 << 16 ),
+        // Max DMA Burst (16 -> 2048 bytes)
+        TCR_MXDMA_SHIFT     = 8,
+            TCR_MXDMA_16    = ( 0 << TCR_MXDMA_SHIFT ),
+            TCR_MXDMA_32    = ( 1 << TCR_MXDMA_SHIFT ),
+            TCR_MXDMA_64    = ( 2 << TCR_MXDMA_SHIFT ),
+            TCR_MXDMA_128   = ( 3 << TCR_MXDMA_SHIFT ),
+            TCR_MXDMA_256   = ( 4 << TCR_MXDMA_SHIFT ),
+            TCR_MXDMA_512   = ( 5 << TCR_MXDMA_SHIFT ),
+            TCR_MXDMA_1024  = ( 6 << TCR_MXDMA_SHIFT ),
+            TCR_MXDMA_2048  = ( 7 << TCR_MXDMA_SHIFT ),
+
     RCR       = 0x44,
 
     TCTR      = 0x48,

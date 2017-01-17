@@ -84,6 +84,9 @@ static int r8139dn_net_open ( struct net_device * ndev )
     priv -> tx_buffer = tx_buffer;
     priv -> tx_buffer_dma = tx_buffer_dma;
 
+    // Enable TX and load default TX settings
+    r8139dn_hw_enable_and_configure_tx ( priv );
+
     // Forbid the kernel to give us packets to transmit for now...
     netif_stop_queue ( ndev ); // XXX
     return 0;
@@ -106,6 +109,11 @@ static int r8139dn_net_close ( struct net_device * ndev )
     pr_info ( "Bringing interface down...\n" );
 
     priv = netdev_priv ( ndev );
+
+    // Disable TX and RX
+    r8139dn_hw_disable_transceiver ( priv );
+
+    // Free TX DMA memory
     dma_free_coherent ( & ( priv -> pdev -> dev ), R8139DN_TX_DMA_SIZE,
             priv -> tx_buffer, priv -> tx_buffer_dma );
 
