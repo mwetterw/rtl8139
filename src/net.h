@@ -5,8 +5,6 @@
 #include <linux/etherdevice.h>
 #include <linux/pci.h>
 
-extern struct net_device_ops r8139dn_ops;
-
 // r8139dn_priv is a struct we can always fetch from the network device
 // We can store anything that makes our life easier.
 struct r8139dn_priv

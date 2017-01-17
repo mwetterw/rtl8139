@@ -5,9 +5,9 @@ static netdev_tx_t r8139dn_net_start_xmit ( struct sk_buff * skb, struct net_dev
 
 // r8139dn_ops stores fonctors to our driver actions,
 // so that the kernel can call the relevant one when needed
-struct net_device_ops r8139dn_ops =
+static struct net_device_ops r8139dn_ops =
 {
-    .ndo_start_xmit = &r8139dn_net_start_xmit,
+    .ndo_start_xmit = r8139dn_net_start_xmit,
 };
 
 int r8139dn_net_init ( struct pci_dev * pdev, void __iomem * mmio )
