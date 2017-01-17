@@ -11,6 +11,8 @@ struct r8139dn_priv
 {
     struct pci_dev * pdev;
     void __iomem * mmio;
+    void * tx_buffer;
+    dma_addr_t tx_buffer_dma;
 };
 
 int r8139dn_net_init ( struct pci_dev * pdev, void __iomem * mmio );

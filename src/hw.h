@@ -17,7 +17,15 @@ enum
 };
 
 // IOAR or MEMAR each need at least 256 bytes
-#define R8139DN_IO_SIZE 0x100
+#define R8139DN_IO_SIZE 256
+
+// Maximum Ethernet frame size that can be handled by the device
+#define R8139DN_MAX_ETH_SIZE 1792
+
+// Number of TX descriptors
+#define R8139DN_TX_DESC_NB 4
+
+#define R8139DN_TX_DMA_SIZE ( R8139DN_MAX_ETH_SIZE * R8139DN_TX_DESC_NB )
 
 enum
 {

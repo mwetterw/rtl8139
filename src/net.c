@@ -58,11 +58,31 @@ int r8139dn_net_init ( struct pci_dev * pdev, void __iomem * mmio )
     return 0;
 }
 
-// The kernel calls this when interface is upped
+// The kernel calls this when interface is set up
 // ip link set up dev eth0
 static int r8139dn_net_open ( struct net_device * ndev )
 {
+    struct r8139dn_priv * priv;
+    void * tx_buffer;
+    dma_addr_t tx_buffer_dma;
+
     pr_info ( "Bringing interface up...\n" );
+
+    priv = netdev_priv ( ndev );
+
+    // Allocate a DMA buffer so that the hardware and the driver
+    // share a common memory for packet transmission.
+    // Later we well pass the tx_buffer_dma address to the hardware
+    tx_buffer = dma_alloc_coherent ( & ( priv -> pdev -> dev ),
+            R8139DN_TX_DMA_SIZE, & tx_buffer_dma, GFP_KERNEL );
+
+    if ( tx_buffer == NULL )
+    {
+        return -ENOMEM;
+    }
+
+    priv -> tx_buffer = tx_buffer;
+    priv -> tx_buffer_dma = tx_buffer_dma;
 
     // Forbid the kernel to give us packets to transmit for now...
     netif_stop_queue ( ndev ); // XXX
@@ -81,6 +101,13 @@ static netdev_tx_t r8139dn_net_start_xmit ( struct sk_buff * skb, struct net_dev
 // ip link set down dev eth0
 static int r8139dn_net_close ( struct net_device * ndev )
 {
+    struct r8139dn_priv * priv;
+
     pr_info ( "Bringing interface down...\n" );
+
+    priv = netdev_priv ( ndev );
+    dma_free_coherent ( & ( priv -> pdev -> dev ), R8139DN_TX_DMA_SIZE,
+            priv -> tx_buffer, priv -> tx_buffer_dma );
+
     return 0;
 }
