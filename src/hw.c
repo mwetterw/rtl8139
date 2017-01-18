@@ -37,15 +37,29 @@ void r8139dn_hw_mac_load_to_kernel ( struct net_device * ndev )
     ( ( u16 * ) ndev -> dev_addr ) [ 2 ] = r8139dn_r16 ( IDR4 );
 }
 
-// Enable the transmitter
-// Set up the transmission settings
-void r8139dn_hw_enable_and_configure_tx ( struct r8139dn_priv * priv )
+// Enable the transmitter, set up the transmission settings
+// and tell hardware where to DMA
+void r8139dn_hw_setup_tx ( struct r8139dn_priv * priv )
 {
+    int i;
+
     // Turn the transmitter on
     r8139dn_w8 ( CR, CR_TE );
 
     // Set up the TX settings
     r8139dn_w32 ( TCR, TCR_IFG_DEFAULT | TCR_MXDMA_1024 );
+
+    // We want 8 + (3 x 32) bytes = 104 bytes of early TX threshold
+    // It means we put data on the wire only once FIFO has reached this threshold
+    priv -> tx_flags = ( 3 << TSD_ERTXTH_SHIFT );
+
+    // Inform the hardware about the DMA location of the TX descriptors
+    // That way, later it can read the frames we want to send
+    for ( i = 0; i < R8139DN_TX_DESC_NB ; ++i )
+    {
+        r8139dn_w32 ( TSAD0 + i * TSAD_GAP,
+                ( priv -> tx_buffer_dma ) + ( i * R8139DN_TX_DESC_SIZE ) );
+    }
 }
 
 // Disable transceiver (TX & RX)

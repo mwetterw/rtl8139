@@ -7,7 +7,7 @@
 
 void r8139dn_hw_reset ( struct r8139dn_priv * priv );
 void r8139dn_hw_mac_load_to_kernel ( struct net_device * ndev );
-void r8139dn_hw_enable_and_configure_tx ( struct r8139dn_priv * priv );
+void r8139dn_hw_setup_tx ( struct r8139dn_priv * priv );
 void r8139dn_hw_disable_transceiver ( struct r8139dn_priv * priv );
 
 // BAR, Base Address Registers in the PCI Configuration Space
@@ -24,13 +24,15 @@ enum
 // Maximum Ethernet frame size that can be handled by the device
 #define R8139DN_MAX_ETH_SIZE 1792
 
-// Number of TX descriptors
+// Number and size of TX descriptors
 #define R8139DN_TX_DESC_NB 4
+#define R8139DN_TX_DESC_SIZE R8139DN_MAX_ETH_SIZE
+#define R8139DN_TX_DMA_SIZE ( R8139DN_TX_DESC_SIZE * R8139DN_TX_DESC_NB )
 
-#define R8139DN_TX_DMA_SIZE ( R8139DN_MAX_ETH_SIZE * R8139DN_TX_DESC_NB )
-
+// Registers
 enum
 {
+    // ID Registers ("What is my own MAC register")
     IDR0      = 0x00, // ID Registers.
     IDR1      = 0x01, // W access only 32. R access 8, 16 or 32.
     IDR2      = 0x02, // They contain the MAC address currently
@@ -55,23 +57,26 @@ enum
     TSD1      = 0x14,
     TSD2      = 0x18,
     TSD3      = 0x1c,
+    TSD_GAP  = ( TSD1 - TSD0 ),
         TSD_CRS    = ( 1 << 31 ),
         TSD_TABT   = ( 1 << 30 ),
         TSD_OWC    = ( 1 << 29 ),
         TSD_CDH    = ( 1 << 28 ),
         TSD_NCC    = ( 0xff << 24 ),
         // Reserved 23 -> 22
-        TSD_ERTXTH = ( 0x3f << 16 ),
+        TSD_ERTXTH_SHIFT = 16,
+            TSD_ERTXTH = ( 0x3f << TSD_ERTXTH_SHIFT ),
         TSD_TOK    = ( 1 << 15 ),
         TSD_TUN    = ( 1 << 14 ),
         TSD_OWN    = ( 1 << 13 ),
         TSD_SIZE   = ( 0x1fff ),
 
-    // Transmit Start Address of Descriptor
+    // Transmit Start Address of Descriptor Registers
     TSAD0     = 0x20,
     TSAD1     = 0x24,
     TSAD2     = 0x28,
     TSAD3     = 0x2c,
+    TSAD_GAP  = ( TSAD1 - TSAD0 ),
 
     RBSTART   = 0x30,
     ERBCR     = 0x34,
@@ -79,7 +84,7 @@ enum
 
     // Command Register
     CR        = 0x37,
-        // Reserved 7 -> 5
+        // Reserved  7 -> 5
         CR_RST   = ( 1 << 4 ),
         CR_RE    = ( 1 << 3 ),
         CR_TE    = ( 1 << 2 ),
