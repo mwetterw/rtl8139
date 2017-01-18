@@ -11,7 +11,8 @@ struct r8139dn_priv
 {
     struct pci_dev * pdev;
     void __iomem * mmio;
-    void * tx_buffer;
+
+    void * tx_buffer_cpu;
     dma_addr_t tx_buffer_dma;
     u32 tx_flags;
 };

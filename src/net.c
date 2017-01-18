@@ -63,7 +63,7 @@ int r8139dn_net_init ( struct pci_dev * pdev, void __iomem * mmio )
 static int r8139dn_net_open ( struct net_device * ndev )
 {
     struct r8139dn_priv * priv;
-    void * tx_buffer;
+    void * tx_buffer_cpu;
     dma_addr_t tx_buffer_dma;
 
     pr_info ( "Bringing interface up...\n" );
@@ -73,15 +73,15 @@ static int r8139dn_net_open ( struct net_device * ndev )
     // Allocate a DMA buffer so that the hardware and the driver
     // share a common memory for packet transmission.
     // Later we will pass the tx_buffer_dma address to the hardware
-    tx_buffer = dma_alloc_coherent ( & ( priv -> pdev -> dev ),
+    tx_buffer_cpu = dma_alloc_coherent ( & ( priv -> pdev -> dev ),
             R8139DN_TX_DMA_SIZE, & tx_buffer_dma, GFP_KERNEL );
 
-    if ( tx_buffer == NULL )
+    if ( tx_buffer_cpu == NULL )
     {
         return -ENOMEM;
     }
 
-    priv -> tx_buffer = tx_buffer;
+    priv -> tx_buffer_cpu = tx_buffer_cpu;
     priv -> tx_buffer_dma = tx_buffer_dma;
 
     // Enable TX, load default TX settings
@@ -111,14 +111,14 @@ static netdev_tx_t r8139dn_net_start_xmit ( struct sk_buff * skb, struct net_dev
     // Our hardware doesn't handle this
     if ( len < ETH_ZLEN )
     {
-        memset ( ( priv -> tx_buffer ) + len, 0, ETH_ZLEN - len );
+        memset ( ( priv -> tx_buffer_cpu ) + len, 0, ETH_ZLEN - len );
         len = ETH_ZLEN;
     }
     // XXX Add a check for frames that are too long
 
-    // Copy the packet so that hardware can read it later
-    // This also adds the FCS checksum (by the software)
-    skb_copy_and_csum_dev ( skb, priv -> tx_buffer );
+    // Copy the packet to the shared memory with the hardware
+    // This also adds the CRC FCS (computed by the software)
+    skb_copy_and_csum_dev ( skb, priv -> tx_buffer_cpu );
 
     // Get rid of the now useless sk_buff :'(
     // Yes, it's the deep down bottom of the TCP/IP stack here :-)
@@ -152,7 +152,7 @@ static int r8139dn_net_close ( struct net_device * ndev )
 
     // Free TX DMA memory
     dma_free_coherent ( & ( priv -> pdev -> dev ), R8139DN_TX_DMA_SIZE,
-            priv -> tx_buffer, priv -> tx_buffer_dma );
+            priv -> tx_buffer_cpu, priv -> tx_buffer_dma );
 
     return 0;
 }
