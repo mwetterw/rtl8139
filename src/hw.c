@@ -23,6 +23,11 @@ void r8139dn_hw_reset ( struct r8139dn_priv * priv )
         }
         udelay ( 1 );
     }
+
+    // Resetting the chip also resets hardware TX pointer to TSAD0
+    // So we need to keep track of this, and we also reset our own position
+    priv -> tx_buffer_hw_pos = 0;
+    priv -> tx_buffer_our_pos = 0;
 }
 
 // Retrieve the MAC address currently in the IDR registers

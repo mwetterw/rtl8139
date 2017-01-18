@@ -99,6 +99,7 @@ static int r8139dn_net_open ( struct net_device * ndev )
 static netdev_tx_t r8139dn_net_start_xmit ( struct sk_buff * skb, struct net_device * ndev )
 {
     struct r8139dn_priv * priv;
+    void * descriptor;
     u32 flags;
     u16 len;
 
@@ -107,18 +108,21 @@ static netdev_tx_t r8139dn_net_start_xmit ( struct sk_buff * skb, struct net_dev
     priv = netdev_priv ( ndev );
     len = skb -> len;
 
+    descriptor =
+        priv -> tx_buffer_cpu + priv -> tx_buffer_our_pos * R8139DN_TX_DESC_SIZE;
+
     // We need to implement padding if the frame is too short
     // Our hardware doesn't handle this
     if ( len < ETH_ZLEN )
     {
-        memset ( ( priv -> tx_buffer_cpu ) + len, 0, ETH_ZLEN - len );
+        memset ( descriptor + len, 0, ETH_ZLEN - len );
         len = ETH_ZLEN;
     }
     // XXX Add a check for frames that are too long
 
     // Copy the packet to the shared memory with the hardware
     // This also adds the CRC FCS (computed by the software)
-    skb_copy_and_csum_dev ( skb, priv -> tx_buffer_cpu );
+    skb_copy_and_csum_dev ( skb, descriptor );
 
     // Get rid of the now useless sk_buff :'(
     // Yes, it's the deep down bottom of the TCP/IP stack here :-)
@@ -128,11 +132,20 @@ static netdev_tx_t r8139dn_net_start_xmit ( struct sk_buff * skb, struct net_dev
     flags = priv -> tx_flags | len;
 
     // Transmit frame to the world, to __THE INTERNET__!
-    r8139dn_w32 ( TSD0, flags );
+    r8139dn_w32 ( TSD0 + priv -> tx_buffer_our_pos * TSD_GAP, flags );
 
-    // Forbid the kernel to give us packets to transmit for now...
-    // TODO: Be able to send more than only one single packet? :D
-    netif_stop_queue ( ndev ); // XXX
+    // Move our own position
+    priv -> tx_buffer_our_pos =
+        ( priv -> tx_buffer_our_pos + 1 ) % R8139DN_TX_DESC_NB;
+
+    // If our network card is overwhelmed with packets to transmit
+    // We need to tell the kernel to stop giving us packets
+    // That way, we don't overwrite packets that haven't been processed yet
+    if ( priv -> tx_buffer_our_pos == priv -> tx_buffer_hw_pos )
+    {
+        pr_info ( "TX buffers full, stopping queue\n" );
+        netif_stop_queue ( ndev );
+    }
 
     return NETDEV_TX_OK;
 }

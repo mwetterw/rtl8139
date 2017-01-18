@@ -14,6 +14,8 @@ struct r8139dn_priv
 
     void * tx_buffer_cpu;
     dma_addr_t tx_buffer_dma;
+    int tx_buffer_our_pos;
+    int tx_buffer_hw_pos;
     u32 tx_flags;
 };
 
