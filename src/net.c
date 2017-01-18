@@ -66,13 +66,11 @@ int r8139dn_net_init ( struct pci_dev * pdev, void __iomem * mmio )
 // ip link set up dev eth0
 static int r8139dn_net_open ( struct net_device * ndev )
 {
-    struct r8139dn_priv * priv;
+    struct r8139dn_priv * priv = netdev_priv ( ndev );
     void * tx_buffer_cpu;
     dma_addr_t tx_buffer_dma;
 
     pr_info ( "Bringing interface up...\n" );
-
-    priv = netdev_priv ( ndev );
 
     // Allocate a DMA buffer so that the hardware and the driver
     // share a common memory for packet transmission.
@@ -102,14 +100,13 @@ static int r8139dn_net_open ( struct net_device * ndev )
 // The kernel gives us a packet to transmit by calling this function
 static netdev_tx_t r8139dn_net_start_xmit ( struct sk_buff * skb, struct net_device * ndev )
 {
-    struct r8139dn_priv * priv;
+    struct r8139dn_priv * priv = netdev_priv ( ndev );
     void * descriptor;
     u32 flags;
     u16 len;
 
     pr_info ( "TX request! (%d bytes)\n", skb -> len );
 
-    priv = netdev_priv ( ndev );
     len = skb -> len;
 
     // Drop packets that are too big for us
@@ -173,11 +170,9 @@ static struct rtnl_link_stats64 * r8139dn_net_fill_stats ( struct net_device * n
 // ip link set down dev eth0
 static int r8139dn_net_close ( struct net_device * ndev )
 {
-    struct r8139dn_priv * priv;
+    struct r8139dn_priv * priv = netdev_priv ( ndev );
 
     pr_info ( "Bringing interface down...\n" );
-
-    priv = netdev_priv ( ndev );
 
     // Disable TX and RX
     r8139dn_hw_disable_transceiver ( priv );
