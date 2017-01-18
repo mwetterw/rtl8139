@@ -112,6 +112,15 @@ static netdev_tx_t r8139dn_net_start_xmit ( struct sk_buff * skb, struct net_dev
     priv = netdev_priv ( ndev );
     len = skb -> len;
 
+    // Drop packets that are too big for us
+    if ( len + ETH_FCS_LEN > R8139DN_MAX_ETH_SIZE )
+    {
+        pr_info ( "TX dropped! (%d bytes is too big for me)\n", len + ETH_FCS_LEN );
+        dev_kfree_skb ( skb );
+        // TODO: Update stats
+        return NETDEV_TX_OK;
+    }
+
     descriptor =
         priv -> tx_buffer_cpu + priv -> tx_buffer_our_pos * R8139DN_TX_DESC_SIZE;
 
@@ -122,7 +131,6 @@ static netdev_tx_t r8139dn_net_start_xmit ( struct sk_buff * skb, struct net_dev
         memset ( descriptor + len, 0, ETH_ZLEN - len );
         len = ETH_ZLEN;
     }
-    // XXX Add a check for frames that are too long
 
     // Copy the packet to the shared memory with the hardware
     // This also adds the CRC FCS (computed by the software)
