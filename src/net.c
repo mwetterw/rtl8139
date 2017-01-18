@@ -1,8 +1,11 @@
 #include "net.h"
 #include "hw.h"
 
+#include <linux/if_link.h>
+
 static int r8139dn_net_open ( struct net_device * ndev );
 static netdev_tx_t r8139dn_net_start_xmit ( struct sk_buff * skb, struct net_device * ndev );
+static struct rtnl_link_stats64 * r8139dn_net_fill_stats ( struct net_device * ndev, struct rtnl_link_stats64 * stats );
 static int r8139dn_net_close ( struct net_device * ndev );
 
 // r8139dn_ops stores functors to our driver actions,
@@ -11,6 +14,7 @@ static struct net_device_ops r8139dn_ops =
 {
     .ndo_open = r8139dn_net_open,
     .ndo_start_xmit = r8139dn_net_start_xmit,
+    .ndo_get_stats64 = r8139dn_net_fill_stats,
     .ndo_stop = r8139dn_net_close,
 };
 
@@ -148,6 +152,13 @@ static netdev_tx_t r8139dn_net_start_xmit ( struct sk_buff * skb, struct net_dev
     }
 
     return NETDEV_TX_OK;
+}
+
+// Called when someone requests our stats
+static struct rtnl_link_stats64 * r8139dn_net_fill_stats ( struct net_device * ndev, struct rtnl_link_stats64 * stats )
+{
+    // TODO
+    return stats;
 }
 
 // The kernel calls this when interface is set down
