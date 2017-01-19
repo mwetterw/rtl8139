@@ -94,7 +94,21 @@ enum
     CAPR      = 0x38,
     CBR       = 0x3a,
 
+    // Interrupt Mask Register
     IMR       = 0x3c,
+        // Valid for IMR and ISR
+        INT_SERR    = ( 1 << 15 ),
+        INT_TIMEOUT = ( 1 << 14 ),
+        INT_LENCHG  = ( 1 << 13 ),
+        // Reserved     12 -> 7
+        INT_FOVW    = ( 1 << 6 ),
+        INT_PUN     = ( 1 << 5 ),
+        INT_RXOVW   = ( 1 << 4 ),
+        INT_TER     = ( 1 << 3 ),
+        INT_TOK     = ( 1 << 2 ),
+        INT_RER     = ( 1 << 1 ),
+        INT_ROK     = ( 1 << 0 ),
+    // Interrupt Status Register
     ISR       = 0x3e,
 
     // TX Configuration Register
