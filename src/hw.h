@@ -9,6 +9,9 @@ void r8139dn_hw_reset ( struct r8139dn_priv * priv );
 void r8139dn_hw_mac_load_to_kernel ( struct net_device * ndev );
 void r8139dn_hw_setup_tx ( struct r8139dn_priv * priv );
 void r8139dn_hw_disable_transceiver ( struct r8139dn_priv * priv );
+void r8139dn_hw_enable_irq ( struct r8139dn_priv * priv );
+void r8139dn_hw_clear_irq ( struct r8139dn_priv * priv );
+void r8139dn_hw_disable_irq ( struct r8139dn_priv * priv );
 
 // BAR, Base Address Registers in the PCI Configuration Space
 enum
@@ -108,6 +111,7 @@ enum
         INT_TOK     = ( 1 << 2 ),
         INT_RER     = ( 1 << 1 ),
         INT_ROK     = ( 1 << 0 ),
+        INT_CLEAR   = 0xffff,
     // Interrupt Status Register
     ISR       = 0x3e,
 

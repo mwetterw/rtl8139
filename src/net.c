@@ -103,6 +103,9 @@ static int r8139dn_net_open ( struct net_device * ndev )
     // he can give us packets immediately: we are ready to be his postman!
     netif_start_queue ( ndev );
 
+    // Enable interrupts so that hardware can notify us about important events
+    r8139dn_hw_enable_irq ( priv );
+
     return 0;
 }
 
@@ -170,7 +173,14 @@ static netdev_tx_t r8139dn_net_start_xmit ( struct sk_buff * skb, struct net_dev
 
 static irqreturn_t r8139dn_net_interrupt ( int irq, void * dev )
 {
-    pr_info ( "IRQ!\n" );
+    struct net_device * ndev = ( struct net_device * ) dev;
+    struct r8139dn_priv * priv = netdev_priv ( ndev );
+    u16 isr = r8139dn_r16 ( ISR );
+
+    pr_info ( "IRQ (ISR: %04x)\n", isr );
+
+    // Clear interrupts so that they don't fire again
+    r8139dn_hw_clear_irq ( priv );
 
     return IRQ_HANDLED;
 }
@@ -193,6 +203,9 @@ static int r8139dn_net_close ( struct net_device * ndev )
 
     // Disable TX and RX
     r8139dn_hw_disable_transceiver ( priv );
+
+    // Disable IRQ
+    r8139dn_hw_disable_irq ( priv );
 
     // Free TX DMA memory
     dma_free_coherent ( & ( priv -> pdev -> dev ), R8139DN_TX_DMA_SIZE,
