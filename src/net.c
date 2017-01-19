@@ -5,6 +5,7 @@
 
 static int r8139dn_net_open ( struct net_device * ndev );
 static netdev_tx_t r8139dn_net_start_xmit ( struct sk_buff * skb, struct net_device * ndev );
+static irqreturn_t r8139dn_net_interrupt ( int irq, void * dev );
 static struct rtnl_link_stats64 * r8139dn_net_fill_stats ( struct net_device * ndev, struct rtnl_link_stats64 * stats );
 static int r8139dn_net_close ( struct net_device * ndev );
 
@@ -67,10 +68,17 @@ int r8139dn_net_init ( struct pci_dev * pdev, void __iomem * mmio )
 static int r8139dn_net_open ( struct net_device * ndev )
 {
     struct r8139dn_priv * priv = netdev_priv ( ndev );
+    int irq = priv -> pdev -> irq;
     void * tx_buffer_cpu;
     dma_addr_t tx_buffer_dma;
+    int err;
 
     pr_info ( "Bringing interface up...\n" );
+
+    // Reserve an shared IRQ line and hook our handler on it
+    err = request_irq ( irq, r8139dn_net_interrupt, IRQF_SHARED, ndev -> name, ndev );
+    if ( err )
+        return err;
 
     // Allocate a DMA buffer so that the hardware and the driver
     // share a common memory for packet transmission.
@@ -78,8 +86,9 @@ static int r8139dn_net_open ( struct net_device * ndev )
     tx_buffer_cpu = dma_alloc_coherent ( & ( priv -> pdev -> dev ),
             R8139DN_TX_DMA_SIZE, & tx_buffer_dma, GFP_KERNEL );
 
-    if ( tx_buffer_cpu == NULL )
+    if ( ! tx_buffer_cpu )
     {
+        free_irq ( irq, ndev );
         return -ENOMEM;
     }
 
@@ -159,6 +168,13 @@ static netdev_tx_t r8139dn_net_start_xmit ( struct sk_buff * skb, struct net_dev
     return NETDEV_TX_OK;
 }
 
+static irqreturn_t r8139dn_net_interrupt ( int irq, void * dev )
+{
+    pr_info ( "IRQ!\n" );
+
+    return IRQ_HANDLED;
+}
+
 // Called when someone requests our stats
 static struct rtnl_link_stats64 * r8139dn_net_fill_stats ( struct net_device * ndev, struct rtnl_link_stats64 * stats )
 {
@@ -171,6 +187,7 @@ static struct rtnl_link_stats64 * r8139dn_net_fill_stats ( struct net_device * n
 static int r8139dn_net_close ( struct net_device * ndev )
 {
     struct r8139dn_priv * priv = netdev_priv ( ndev );
+    int irq = priv -> pdev -> irq;
 
     pr_info ( "Bringing interface down...\n" );
 
@@ -180,6 +197,9 @@ static int r8139dn_net_close ( struct net_device * ndev )
     // Free TX DMA memory
     dma_free_coherent ( & ( priv -> pdev -> dev ), R8139DN_TX_DMA_SIZE,
             priv -> tx_buffer_cpu, priv -> tx_buffer_dma );
+
+    // Unhook our handler from the IRQ line
+    free_irq ( irq, ndev );
 
     return 0;
 }
