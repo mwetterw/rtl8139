@@ -12,6 +12,7 @@ void r8139dn_hw_disable_transceiver ( struct r8139dn_priv * priv );
 void r8139dn_hw_enable_irq ( struct r8139dn_priv * priv );
 void r8139dn_hw_clear_irq ( struct r8139dn_priv * priv );
 void r8139dn_hw_disable_irq ( struct r8139dn_priv * priv );
+u16 r8139dn_eeprom_read ( struct r8139dn_priv * priv, u8 word_addr );
 
 // BAR, Base Address Registers in the PCI Configuration Space
 enum

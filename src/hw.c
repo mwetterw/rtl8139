@@ -30,6 +30,59 @@ void r8139dn_hw_reset ( struct r8139dn_priv * priv )
     priv -> tx_buffer_our_pos = 0;
 }
 
+// Read a word (16 bits) from the EEPROM at word_addr address
+u16 r8139dn_eeprom_read ( struct r8139dn_priv * priv, u8 word_addr )
+{
+    // The command is an 3 bits opcode (EE_READ) followed by 6 bits address
+    u16 cmd = ( EE_READ << EE_ADDRLEN ) | word_addr;
+    u8 flags = EE_CR_PROGRAM | EE_CR_EECS; // We'll keep those flags high until the end
+    u16 res = 0;
+    u8 eedi;
+    int i;
+
+    // Enable EEPROM Programming mode so that we can access EEPROM pins
+    // In following commands, keep Programming mode enabled to maintain access to the pins
+    r8139dn_w8 ( EE_CR, EE_CR_PROGRAM );
+
+    // Just send a Chip Select and then keep it high until the end
+    // This tells the EEPROM we are talking to her and not to someone else sharing the bus :)
+    r8139dn_w8 ( EE_CR, flags );
+    udelay ( 1 );
+
+    // Send our read command to the EEPROM
+    // We have only 9 bits to send (3 + 6 as stated above), so from 8 to 0
+    for ( i = EE_READ_LEN - 1 ; i >= 0 ; --i )
+    {
+        // If the bit we want to send is 1, we assert EEDI pin
+        eedi = cmd & ( 1 << i ) ? EE_CR_EEDI : 0;
+        r8139dn_w8 ( EE_CR, flags | eedi ); // Clock low with our data
+        udelay ( 1 );
+        r8139dn_w8 ( EE_CR, flags | EE_CR_EESK | eedi ); // Clock high with our data
+        udelay ( 1 );
+    }
+
+    r8139dn_w8 ( EE_CR, flags ); // Clock low
+    udelay ( 1 );
+
+    // Fetch EEPROM answer
+    // This is a 64x16bit EEPROM, answer is 16 bits long
+    for ( i = 15 ; i >= 0 ; --i )
+    {
+        r8139dn_w8 ( EE_CR, flags | EE_CR_EESK ); // Clock high (each time we'll get one answer bit)
+        udelay ( 1 );
+        res |= ( r8139dn_r8 ( EE_CR ) & EE_CR_EEDO ) ? 1 << i : 0; // Append the bit to the result
+        r8139dn_w8 ( EE_CR, flags ); // Clock low
+        udelay ( 1 );
+    }
+
+    // Read is complete
+    // Disable EEPROM Programming mode and return to normal mode
+    r8139dn_w8 ( EE_CR, EE_CR_NORMAL );
+    udelay ( 1 );
+
+    return res;
+}
+
 // Retrieve the MAC address currently in the IDR registers
 // and update the net device with it to tell the kernel.
 // TODO Read from EEPROM instead
