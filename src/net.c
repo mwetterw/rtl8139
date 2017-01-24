@@ -95,6 +95,8 @@ static int r8139dn_net_open ( struct net_device * ndev )
     priv -> tx_buffer_cpu = tx_buffer_cpu;
     priv -> tx_buffer_dma = tx_buffer_dma;
 
+    r8139dn_hw_reset ( priv );
+
     // Enable TX, load default TX settings
     // and inform the hardware where our shared memory is (DMA)
     r8139dn_hw_setup_tx ( priv );
