@@ -5,7 +5,7 @@
 #include <linux/module.h>
 
 // This is the list of devices we claim to be the driver for
-struct pci_device_id r8139dn_pci_id_table [ ] =
+static struct pci_device_id r8139dn_pci_id_table [ ] =
 {
     { PCI_DEVICE ( PCI_VENDOR_ID_REALTEK, PCI_DEVICE_ID_REALTEK_8139 ) },
     { 0, },
