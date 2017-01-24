@@ -143,7 +143,34 @@ enum
 
     MPC       = 0x4c,
 
-    EEPROM_CR = 0x50,
+    // EEPROM (93C46) Control Register
+    EE_CR = 0x50,
+        EE_CR_NORMAL    = 0x00, // Normal mode (network/host communication)
+        EE_CR_AUTO_LOAD = 0x40, // 93C46 contents auto-loaded (take 2ms), then goes back to normal mode.
+        EE_CR_PROGRAM   = 0x80, // EECS, EESK, EEDI, EEDO will reflect the real EEPROM pins
+            EE_CR_EECS = 0x08, // Chip Select
+            EE_CR_EESK = 0x04, // Serial Data Clock
+            EE_CR_EEDI = 0x02, // Serial Data Input
+            EE_CR_EEDO = 0x01, // Serial Data Output
+
+            // Following come from ATMEL AT93C46 EEPROM Datasheet
+            // Start Bit | Opcode | Address [| Data]
+            // The SB (Start Bit) is included in the following opcodes
+            EE_READ  = 0x06, // Reads data stored in memory
+            EE_EWEN  = 0x04, // Write enable (must precede all programming modes)
+                EE_EWEN_ADDR  = 0x30,
+            EE_ERASE = 0x07, // Erases memory location
+            EE_WRITE = 0x05, // Writes memory location. After address: 16bits of data to write
+            EE_ERAL  = 0x04, // Erases all memory locations
+                EE_ERAL_ADDR  = 0x20,
+            EE_WRAL  = 0x04, // Writes all memory locations. After address: 16bits of data to write
+                EE_WRAL_ADDR = 0x10,
+            EE_EWDS  = 0x04, // Disables all programming instructions
+                EE_EWDS_ADDR = 0x00,
+            EE_ADDRLEN   = 0x06, // Size of address after the start bit and opcode
+            EE_OPCODELEN = 0x03, // Size of opcode (with Start Bit included)
+            EE_READ_LEN  = ( EE_ADDRLEN + EE_OPCODELEN ),
+        EE_CR_CFG_WRITE = 0xc0, // Unlock write access to CONFIG0~4 and bit 13,12,8 of BCMR
 
     CONFIG0   = 0x51,
     CONFIG1   = 0x52,
