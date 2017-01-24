@@ -31,13 +31,17 @@ void r8139dn_hw_reset ( struct r8139dn_priv * priv )
 }
 
 // Read a word (16 bits) from the EEPROM at word_addr address
+// We could actually also use <linux/eeprom_93cx6.h> :)
+// EEPROM content is in the Little Endian fashion
+// But I make sure I return to you the value in your native CPU byte-order
 u16 r8139dn_eeprom_read ( struct r8139dn_priv * priv, u8 word_addr )
 {
     // The command is an 3 bits opcode (EE_READ) followed by 6 bits address
-    u16 cmd = ( EE_READ << EE_ADDRLEN ) | word_addr;
+    u16 cmd = ( EE_CMD_READ << EE_ADDRLEN ) | word_addr;
     u8 flags = EE_CR_PROGRAM | EE_CR_EECS; // We'll keep those flags high until the end
-    u16 res = 0;
+    __le16 res = 0;
     u8 eedi;
+    bool bit;
     int i;
 
     // Enable EEPROM Programming mode so that we can access EEPROM pins
@@ -51,7 +55,7 @@ u16 r8139dn_eeprom_read ( struct r8139dn_priv * priv, u8 word_addr )
 
     // Send our read command to the EEPROM
     // We have only 9 bits to send (3 + 6 as stated above), so from 8 to 0
-    for ( i = EE_READ_LEN - 1 ; i >= 0 ; --i )
+    for ( i = EE_CMD_READ_LEN - 1 ; i >= 0 ; --i )
     {
         // If the bit we want to send is 1, we assert EEDI pin
         eedi = cmd & ( 1 << i ) ? EE_CR_EEDI : 0;
@@ -70,7 +74,10 @@ u16 r8139dn_eeprom_read ( struct r8139dn_priv * priv, u8 word_addr )
     {
         r8139dn_w8 ( EE_CR, flags | EE_CR_EESK ); // Clock high (each time we'll get one answer bit)
         udelay ( 1 );
-        res |= ( r8139dn_r8 ( EE_CR ) & EE_CR_EEDO ) ? 1 << i : 0; // Append the bit to the result
+        bit = ( r8139dn_r8 ( EE_CR ) & EE_CR_EEDO ) ? 1 : 0; // Fetch the answer bit
+        // Right operand isn't of type __le16, so we cast and use __force to avoid Sparse warning
+        // This cast is harmless as we're only doing basic arithmetic here, it's endianness independent
+        res |= ( __force __le16 ) ( bit << i ); // Append the bit to the result
         r8139dn_w8 ( EE_CR, flags ); // Clock low
         udelay ( 1 );
     }
@@ -80,19 +87,22 @@ u16 r8139dn_eeprom_read ( struct r8139dn_priv * priv, u8 word_addr )
     r8139dn_w8 ( EE_CR, EE_CR_NORMAL );
     udelay ( 1 );
 
-    return res;
+    // EEPROM content is stored in Little Endian fashion
+    // Let's be endianness independent and convert this to our CPU byte order
+    return le16_to_cpu ( res );
 }
 
-// Retrieve the MAC address currently in the IDR registers
+// Retrieve the MAC address from device's EEPROM
 // and update the net device with it to tell the kernel.
-// TODO Read from EEPROM instead
-void r8139dn_hw_mac_load_to_kernel ( struct net_device * ndev )
+void r8139dn_hw_eeprom_mac_to_kernel ( struct net_device * ndev )
 {
     struct r8139dn_priv * priv = netdev_priv ( ndev );
+    int i;
 
-    // XXX Endianness?
-    ( ( u32 * ) ndev -> dev_addr ) [ 0 ] = r8139dn_r32 ( IDR0 );
-    ( ( u16 * ) ndev -> dev_addr ) [ 2 ] = r8139dn_r16 ( IDR4 );
+    for ( i = 0 ; i < 3 ; ++i )
+    {
+        ( ( u16 * ) ndev -> dev_addr ) [ i ] = r8139dn_eeprom_read ( priv, EE_DATA_MAC + i );
+    }
 }
 
 // Enable the transmitter, set up the transmission settings

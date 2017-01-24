@@ -6,7 +6,7 @@
 #include "net.h"
 
 void r8139dn_hw_reset ( struct r8139dn_priv * priv );
-void r8139dn_hw_mac_load_to_kernel ( struct net_device * ndev );
+void r8139dn_hw_eeprom_mac_to_kernel ( struct net_device * ndev );
 void r8139dn_hw_setup_tx ( struct r8139dn_priv * priv );
 void r8139dn_hw_disable_transceiver ( struct r8139dn_priv * priv );
 void r8139dn_hw_enable_irq ( struct r8139dn_priv * priv );
@@ -157,20 +157,24 @@ enum
             // Following come from ATMEL AT93C46 EEPROM Datasheet
             // Start Bit | Opcode | Address [| Data]
             // The SB (Start Bit) is included in the following opcodes
-            EE_READ  = 0x06, // Reads data stored in memory
-            EE_EWEN  = 0x04, // Write enable (must precede all programming modes)
-                EE_EWEN_ADDR  = 0x30,
-            EE_ERASE = 0x07, // Erases memory location
-            EE_WRITE = 0x05, // Writes memory location. After address: 16bits of data to write
-            EE_ERAL  = 0x04, // Erases all memory locations
-                EE_ERAL_ADDR  = 0x20,
-            EE_WRAL  = 0x04, // Writes all memory locations. After address: 16bits of data to write
-                EE_WRAL_ADDR = 0x10,
-            EE_EWDS  = 0x04, // Disables all programming instructions
-                EE_EWDS_ADDR = 0x00,
+            EE_CMD_READ  = 0x06, // Reads data stored in memory
+            EE_CMD_EWEN  = 0x04, // Write enable (must precede all programming modes)
+                EE_CMD_EWEN_ADDR  = 0x30,
+            EE_CMD_ERASE = 0x07, // Erases memory location
+            EE_CMD_WRITE = 0x05, // Writes memory location. After address: 16bits of data to write
+            EE_CMD_ERAL  = 0x04, // Erases all memory locations
+                EE_CMD_ERAL_ADDR  = 0x20,
+            EE_CMD_WRAL  = 0x04, // Writes all memory locations. After address: 16bits of data to write
+                EE_CMD_WRAL_ADDR  = 0x10,
+            EE_CMD_EWDS  = 0x04, // Disables all programming instructions
+                EE_CMD_EWDS_ADDR = 0x00,
             EE_ADDRLEN   = 0x06, // Size of address after the start bit and opcode
             EE_OPCODELEN = 0x03, // Size of opcode (with Start Bit included)
-            EE_READ_LEN  = ( EE_ADDRLEN + EE_OPCODELEN ),
+            EE_CMD_READ_LEN  = ( EE_OPCODELEN + EE_ADDRLEN ),
+
+            // Address of data inside the EEPROM (in word)
+            EE_DATA_MAC = 0x07,
+
         EE_CR_CFG_WRITE = 0xc0, // Unlock write access to CONFIG0~4 and bit 13,12,8 of BCMR
 
     CONFIG0   = 0x51,
