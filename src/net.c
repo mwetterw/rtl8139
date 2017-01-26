@@ -98,6 +98,9 @@ static int r8139dn_net_open ( struct net_device * ndev )
 
     r8139dn_hw_reset ( priv );
 
+    // Restore what the kernel thinks our MAC is to our IDR registers
+    r8139dn_hw_kernel_mac_to_regs ( ndev );
+
     // Enable TX, load default TX settings
     // and inform the hardware where our shared memory is (DMA)
     r8139dn_hw_setup_tx ( priv );

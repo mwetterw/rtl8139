@@ -92,6 +92,29 @@ u16 r8139dn_eeprom_read ( struct r8139dn_priv * priv, u8 word_addr )
     return le16_to_cpu ( res );
 }
 
+// Put the MAC from the kernel network device to the hardware registers (IDR)
+// The device will then start to consider its own MAC is the one provided
+void r8139dn_hw_kernel_mac_to_regs ( struct net_device * ndev )
+{
+    struct r8139dn_priv * priv = netdev_priv ( ndev );
+
+    // When describing IDR or 93C46CR registers, datasheet fails to mention IDR are write protected
+    // However a careful reader will notice the "W*" in front of the IDR registers in the
+    // summary table of the EEPROM registers in section 6.1.
+    // We must first unlock the config registers before any change can be attempted on IDR
+    r8139dn_w8 ( EE_CR, EE_CR_CFG_WRITE_ENABLE );
+
+    // Datasheet says than when writing to IDR0~5, we have to use 4-byte access
+    // What is meant is two dword accesses (2 x 32 bit)
+    // Trying to write byte per byte results in random corruption in these registers
+    // We should not worry writing to IDR0 + 6 and IDR0 + 7: they are reserved for this purpose
+    r8139dn_w32 ( IDR0, ( ( u32 * ) ndev -> dev_addr ) [ 0 ] );
+    r8139dn_w32 ( IDR4, ( ( u32 * ) ndev -> dev_addr ) [ 1 ] );
+
+    // Relock the config registers to prevent accidental changes
+    r8139dn_w8 ( EE_CR, EE_CR_NORMAL );
+}
+
 // Retrieve the MAC address from device's EEPROM
 // and update the net device with it to tell the kernel.
 void r8139dn_hw_eeprom_mac_to_kernel ( struct net_device * ndev )

@@ -7,6 +7,7 @@
 
 void r8139dn_hw_reset ( struct r8139dn_priv * priv );
 void r8139dn_hw_eeprom_mac_to_kernel ( struct net_device * ndev );
+void r8139dn_hw_kernel_mac_to_regs ( struct net_device * ndev );
 void r8139dn_hw_setup_tx ( struct r8139dn_priv * priv );
 void r8139dn_hw_disable_transceiver ( struct r8139dn_priv * priv );
 void r8139dn_hw_enable_irq ( struct r8139dn_priv * priv );
@@ -175,7 +176,7 @@ enum
             // Address of data inside the EEPROM (in word)
             EE_DATA_MAC = 0x07,
 
-        EE_CR_CFG_WRITE = 0xc0, // Unlock write access to CONFIG0~4 and bit 13,12,8 of BCMR
+        EE_CR_CFG_WRITE_ENABLE = 0xc0, // Unlock write access to IDR0~5, CONFIG0~4 and bit 13,12,8 of BCMR
 
     CONFIG0   = 0x51,
     CONFIG1   = 0x52,
