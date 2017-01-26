@@ -272,4 +272,9 @@ enum
 #define r8139dn_w16(reg,val) iowrite16 ( ( val ), priv->mmio + ( reg ) )
 #define r8139dn_w32(reg,val) iowrite32 ( ( val ), priv->mmio + ( reg ) )
 
+// Write without swapping byte order from CPU to Little Endian
+// No matter whether we are a BE or LE CPU, write data as is stored in our RAM to the device registers
+#define __r8139dn_w16_raw(reg,val) __raw_writew ( ( val ), priv->mmio + ( reg ) )
+#define __r8139dn_w32_raw(reg,val) __raw_writel ( ( val ), priv->mmio + ( reg ) )
+
 #endif

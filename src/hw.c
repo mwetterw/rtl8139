@@ -107,9 +107,17 @@ void r8139dn_hw_kernel_mac_to_regs ( struct net_device * ndev )
     // Datasheet says than when writing to IDR0~5, we have to use 4-byte access
     // What is meant is two dword accesses (2 x 32 bit)
     // Trying to write byte per byte results in random corruption in these registers
+    //
+    // We use a special RAW variant when writing here, because we want to bypass the usual cpu_to_le32
+    // We just want to write the memory as it is currently stored in our RAM (regardless of whether we are LE or BE)
+    // Doing this is OK because no matter BE/LE, our dev_addr always has the same layout in memory (char *)
+    // The Most Significant Byte of the MAC address is always in our dev_addr [ 0 ]
+    // We could also have used a le32_to_cpu, but this would have caused a useless double-byteswap for BE CPU
+    // Here, we make no swap on LE, and no swap on BE :)
+    __r8139dn_w32_raw ( IDR0, ( ( u32 * ) ndev -> dev_addr ) [ 0 ] );
+
     // We should not worry writing to IDR0 + 6 and IDR0 + 7: they are reserved for this purpose
-    r8139dn_w32 ( IDR0, ( ( u32 * ) ndev -> dev_addr ) [ 0 ] );
-    r8139dn_w32 ( IDR4, ( ( u32 * ) ndev -> dev_addr ) [ 1 ] );
+    __r8139dn_w32_raw ( IDR4, ( ( u32 * ) ndev -> dev_addr ) [ 1 ] );
 
     // Relock the config registers to prevent accidental changes
     r8139dn_w8 ( EE_CR, EE_CR_NORMAL );
