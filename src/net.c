@@ -4,10 +4,12 @@
 #include <linux/if_link.h>
 #include <linux/interrupt.h> // IRQF_SHARED, irqreturn_t, request_irq, free_irq
 
+static irqreturn_t r8139dn_net_interrupt ( int irq, void * dev );
+
 static int r8139dn_net_open ( struct net_device * ndev );
 static netdev_tx_t r8139dn_net_start_xmit ( struct sk_buff * skb, struct net_device * ndev );
-static irqreturn_t r8139dn_net_interrupt ( int irq, void * dev );
 static struct rtnl_link_stats64 * r8139dn_net_fill_stats ( struct net_device * ndev, struct rtnl_link_stats64 * stats );
+static int r8139dn_net_set_mac_addr ( struct net_device * ndev, void * addr );
 static int r8139dn_net_close ( struct net_device * ndev );
 
 // r8139dn_ops stores functors to our driver actions,
@@ -17,6 +19,7 @@ static struct net_device_ops r8139dn_ops =
     .ndo_open = r8139dn_net_open,
     .ndo_start_xmit = r8139dn_net_start_xmit,
     .ndo_get_stats64 = r8139dn_net_fill_stats,
+    .ndo_set_mac_address = r8139dn_net_set_mac_addr,
     .ndo_stop = r8139dn_net_close,
 };
 
@@ -196,6 +199,27 @@ static struct rtnl_link_stats64 * r8139dn_net_fill_stats ( struct net_device * n
 {
     // TODO
     return stats;
+}
+
+// Called when user wants to change the MAC address
+// ip link set address 05:04:03:02:01:00 dev eth0
+static int r8139dn_net_set_mac_addr ( struct net_device * ndev, void * addr )
+{
+    struct sockaddr * mac_sa = addr;
+
+    // If the MAC address is not valid, just stop here
+    if ( ! is_valid_ether_addr ( mac_sa -> sa_data ) )
+    {
+        return -EADDRNOTAVAIL;
+    }
+
+    // Copy the desired MAC address to kernel (will update what kernel thinks our MAC is)
+    memcpy ( ndev -> dev_addr, mac_sa -> sa_data, ETH_ALEN );
+
+    // Really update what the network card thinks its MAC address is
+    r8139dn_hw_kernel_mac_to_regs ( ndev );
+
+    return 0;
 }
 
 // The kernel calls this when interface is set down
