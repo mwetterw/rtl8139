@@ -82,7 +82,9 @@ static int r8139dn_net_open ( struct net_device * ndev )
     // Reserve an shared IRQ line and hook our handler on it
     err = request_irq ( irq, r8139dn_net_interrupt, IRQF_SHARED, ndev -> name, ndev );
     if ( err )
+    {
         return err;
+    }
 
     // Allocate a DMA buffer so that the hardware and the driver
     // share a common memory for packet transmission.
@@ -187,6 +189,13 @@ static irqreturn_t r8139dn_net_interrupt ( int irq, void * dev )
     u16 isr = r8139dn_r16 ( ISR );
 
     pr_info ( "IRQ (ISR: %04x)\n", isr );
+
+    // Shared IRQ... Return immediately if we have actually nothing to do
+    if ( ! isr )
+    {
+        // Tell the kernel our device was not the trigger for this interrupt
+        return IRQ_NONE;
+    }
 
     // Clear interrupts so that they don't fire again
     r8139dn_hw_clear_irq ( priv );
