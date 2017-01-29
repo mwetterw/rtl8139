@@ -9,6 +9,7 @@
 // We can store anything that makes our life easier.
 struct r8139dn_priv
 {
+    int msg_enable;
     struct pci_dev * pdev;
     void __iomem * mmio;
 
@@ -20,5 +21,15 @@ struct r8139dn_priv
 };
 
 int r8139dn_net_init ( struct pci_dev * pdev, void __iomem * mmio );
+
+#define R8139DN_MSG_ENABLE \
+    (NETIF_MSG_DRV       | \
+     NETIF_MSG_PROBE     | \
+     NETIF_MSG_LINK      | \
+     NETIF_MSG_TIMER     | \
+     NETIF_MSG_IFDOWN    | \
+     NETIF_MSG_IFUP      | \
+     NETIF_MSG_RX_ERR    | \
+     NETIF_MSG_TX_ERR)
 
 #endif

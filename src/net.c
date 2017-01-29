@@ -1,8 +1,9 @@
 #include "net.h"
 #include "hw.h"
 
-#include <linux/if_link.h>
-#include <linux/interrupt.h> // IRQF_SHARED, irqreturn_t, request_irq, free_irq
+#include <linux/module.h>       // MODULE_PARM_DESC
+#include <linux/moduleparam.h>  // module_param
+#include <linux/interrupt.h>    // IRQF_SHARED, irqreturn_t, request_irq, free_irq
 
 static irqreturn_t r8139dn_net_interrupt ( int irq, void * dev );
 
@@ -11,6 +12,10 @@ static netdev_tx_t r8139dn_net_start_xmit ( struct sk_buff * skb, struct net_dev
 static struct rtnl_link_stats64 * r8139dn_net_fill_stats ( struct net_device * ndev, struct rtnl_link_stats64 * stats );
 static int r8139dn_net_set_mac_addr ( struct net_device * ndev, void * addr );
 static int r8139dn_net_close ( struct net_device * ndev );
+
+static int debug = -1;
+module_param ( debug, int, 0 );
+MODULE_PARM_DESC ( debug, "Debug setting" );
 
 // r8139dn_ops stores functors to our driver actions,
 // so that the kernel can call the relevant one when needed
@@ -37,6 +42,7 @@ int r8139dn_net_init ( struct pci_dev * pdev, void __iomem * mmio )
     }
 
     priv = netdev_priv ( ndev );
+    priv -> msg_enable = netif_msg_init ( debug, R8139DN_MSG_ENABLE );
     priv -> pdev = pdev;
     priv -> mmio = mmio;
 
@@ -77,7 +83,10 @@ static int r8139dn_net_open ( struct net_device * ndev )
     dma_addr_t tx_buffer_dma;
     int err;
 
-    pr_info ( "Bringing interface up...\n" );
+    if ( netif_msg_ifup ( priv ) )
+    {
+        netdev_info ( ndev, "Bringing interface up...\n" );
+    }
 
     // Reserve an shared IRQ line and hook our handler on it
     err = request_irq ( irq, r8139dn_net_interrupt, IRQF_SHARED, ndev -> name, ndev );
@@ -128,14 +137,17 @@ static netdev_tx_t r8139dn_net_start_xmit ( struct sk_buff * skb, struct net_dev
     u32 flags;
     u16 len;
 
-    pr_info ( "TX request! (%d bytes)\n", skb -> len );
+    netdev_dbg ( ndev, "TX request! (%d bytes)\n", skb -> len );
 
     len = skb -> len;
 
     // Drop packets that are too big for us
     if ( len + ETH_FCS_LEN > R8139DN_MAX_ETH_SIZE )
     {
-        pr_info ( "TX dropped! (%d bytes is too big for me)\n", len + ETH_FCS_LEN );
+        if ( netif_msg_tx_err ( priv ) )
+        {
+            netdev_dbg ( ndev, "TX dropped! (%d bytes is too big for me)\n", len + ETH_FCS_LEN );
+        }
         dev_kfree_skb ( skb );
         // TODO: Update stats
         return NETDEV_TX_OK;
@@ -175,7 +187,7 @@ static netdev_tx_t r8139dn_net_start_xmit ( struct sk_buff * skb, struct net_dev
     // That way, we don't overwrite packets that haven't been processed yet
     if ( priv -> tx_buffer_our_pos == priv -> tx_buffer_hw_pos )
     {
-        pr_info ( "TX buffers full, stopping queue\n" );
+        netdev_dbg ( ndev, "TX buffers full, stopping queue\n" );
         netif_stop_queue ( ndev );
     }
 
@@ -188,7 +200,10 @@ static irqreturn_t r8139dn_net_interrupt ( int irq, void * dev )
     struct r8139dn_priv * priv = netdev_priv ( ndev );
     u16 isr = r8139dn_r16 ( ISR );
 
-    pr_info ( "IRQ (ISR: %04x)\n", isr );
+    if ( netif_msg_intr ( priv ) )
+    {
+        netdev_dbg ( ndev, "IRQ (ISR: %04x)\n", isr );
+    }
 
     // Shared IRQ... Return immediately if we have actually nothing to do
     if ( ! isr )
@@ -238,7 +253,10 @@ static int r8139dn_net_close ( struct net_device * ndev )
     struct r8139dn_priv * priv = netdev_priv ( ndev );
     int irq = priv -> pdev -> irq;
 
-    pr_info ( "Bringing interface down...\n" );
+    if ( netif_msg_ifdown ( priv ) )
+    {
+        netdev_info ( ndev, "Bringing interface down...\n" );
+    }
 
     // Disable TX and RX
     r8139dn_hw_disable_transceiver ( priv );
