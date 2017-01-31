@@ -13,6 +13,7 @@ static netdev_tx_t r8139dn_net_start_xmit ( struct sk_buff * skb, struct net_dev
 static struct rtnl_link_stats64 * r8139dn_net_fill_stats ( struct net_device * ndev, struct rtnl_link_stats64 * stats );
 static int r8139dn_net_set_mac_addr ( struct net_device * ndev, void * addr );
 static int r8139dn_net_close ( struct net_device * ndev );
+static void r8139dn_net_check_link ( struct net_device * ndev );
 
 static int debug = -1;
 module_param ( debug, int, 0 );
@@ -120,6 +121,11 @@ static int r8139dn_net_open ( struct net_device * ndev )
     // and inform the hardware where our shared memory is (DMA)
     r8139dn_hw_setup_tx ( priv );
 
+    // Assume link is down unless proven otherwise
+    // Then, make an initial link check to find out
+    netif_carrier_off ( ndev );
+    r8139dn_net_check_link ( ndev );
+
     // Inform the kernel, that right after the completion of this ifup,
     // he can give us packets immediately: we are ready to be his postman!
     netif_start_queue ( ndev );
@@ -201,21 +207,28 @@ static irqreturn_t r8139dn_net_interrupt ( int irq, void * dev )
     struct r8139dn_priv * priv = netdev_priv ( ndev );
     u16 isr = r8139dn_r16 ( ISR );
 
-    if ( netif_msg_intr ( priv ) )
-    {
-        netdev_dbg ( ndev, "IRQ (ISR: %04x)\n", isr );
-    }
+    netdev_dbg ( ndev, "IRQ (ISR: %04x)\n", isr );
 
     // Shared IRQ... Return immediately if we have actually nothing to do
+    // Tell the kernel our device was not the trigger for this interrupt
     if ( ! isr )
     {
-        // Tell the kernel our device was not the trigger for this interrupt
         return IRQ_NONE;
     }
 
-    // Clear interrupts so that they don't fire again
-    r8139dn_hw_clear_irq ( priv );
+    // The link status changed.
+    if ( isr & INT_LNKCHG_PUN )
+    {
+        netdev_dbg ( ndev, "Link Changed\n" );
 
+        // Let's check and inform the kernel about the change
+        r8139dn_net_check_link ( ndev );
+    }
+
+
+irq_ack:
+    // Acknowledge interrupts so that they don't fire several times
+    r8139dn_hw_clear_irq ( priv );
     return IRQ_HANDLED;
 }
 
@@ -273,4 +286,31 @@ static int r8139dn_net_close ( struct net_device * ndev )
     free_irq ( irq, ndev );
 
     return 0;
+}
+
+static void r8139dn_net_check_link ( struct net_device * ndev )
+{
+    struct r8139dn_priv * priv = netdev_priv ( ndev );
+    // Fetch the Media Status Register
+    u8 msr = r8139dn_r8 ( MSR );
+
+    // If the link was down but is now up, tell the kernel
+    if ( ! netif_carrier_ok ( ndev ) && ! ( msr & MSR_LINKB ) )
+    {
+        if ( netif_msg_link ( priv ) )
+        {
+            netdev_info ( ndev, "Link is now up!\n" );
+        }
+        netif_carrier_on ( ndev );
+    }
+
+    // If the link was up but is now down, tell the kernel
+    else if ( netif_carrier_ok ( ndev ) && ( msr & MSR_LINKB ) )
+    {
+        if ( netif_msg_link ( priv ) )
+        {
+            netdev_info ( ndev, "Link is now down!\n" );
+        }
+        netif_carrier_off ( ndev );
+    }
 }

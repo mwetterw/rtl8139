@@ -103,18 +103,18 @@ enum
     // Interrupt Mask Register
     IMR       = 0x3c,
         // Valid for IMR and ISR
-        INT_SERR    = ( 1 << 15 ),
+        INT_SERR    = ( 1 << 15 ), // System Error (on the PCI Bus)
         INT_TIMEOUT = ( 1 << 14 ),
-        INT_LENCHG  = ( 1 << 13 ),
+        INT_LENCHG  = ( 1 << 13 ), // Cable Length Changed after RX has been enabled
         // Reserved     12 -> 7
-        INT_FOVW    = ( 1 << 6 ),
-        INT_PUN     = ( 1 << 5 ),
-        INT_RXOVW   = ( 1 << 4 ),
-        INT_TER     = ( 1 << 3 ),
-        INT_TOK     = ( 1 << 2 ),
-        INT_RER     = ( 1 << 1 ),
-        INT_ROK     = ( 1 << 0 ),
-        INT_CLEAR   = 0xffff,
+        INT_FOVW       = ( 1 << 6 ), // RX FIFO Overflow
+        INT_LNKCHG_PUN = ( 1 << 5 ), // Link Change / RX Packet Underrun
+        INT_RXOVW      = ( 1 << 4 ), // RX Buffer Overflow
+        INT_TER        = ( 1 << 3 ), // TX Error
+        INT_TOK        = ( 1 << 2 ), // TX OK
+        INT_RER        = ( 1 << 1 ), // RX Error (CRC or frame alignment error)
+        INT_ROK        = ( 1 << 0 ), // RX OK
+        INT_CLEAR      = 0xffff,
     // Interrupt Status Register
     ISR       = 0x3e,
 
