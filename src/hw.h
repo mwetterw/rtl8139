@@ -11,7 +11,7 @@ void r8139dn_hw_kernel_mac_to_regs ( struct net_device * ndev );
 void r8139dn_hw_setup_tx ( struct r8139dn_priv * priv );
 void r8139dn_hw_disable_transceiver ( struct r8139dn_priv * priv );
 void r8139dn_hw_enable_irq ( struct r8139dn_priv * priv );
-void r8139dn_hw_clear_irq ( struct r8139dn_priv * priv );
+void r8139dn_hw_ack_irq ( struct r8139dn_priv * priv );
 void r8139dn_hw_disable_irq ( struct r8139dn_priv * priv );
 u16 r8139dn_eeprom_read ( struct r8139dn_priv * priv, u8 word_addr );
 const char * r8139dn_hw_version_str ( u32 version );

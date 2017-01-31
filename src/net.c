@@ -228,7 +228,7 @@ static irqreturn_t r8139dn_net_interrupt ( int irq, void * dev )
 
 irq_ack:
     // Acknowledge interrupts so that they don't fire several times
-    r8139dn_hw_clear_irq ( priv );
+    r8139dn_hw_ack_irq ( priv );
     return IRQ_HANDLED;
 }
 

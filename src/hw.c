@@ -175,7 +175,7 @@ void r8139dn_hw_enable_irq ( struct r8139dn_priv * priv )
 }
 
 // Clear interrupts
-void r8139dn_hw_clear_irq ( struct r8139dn_priv * priv )
+void r8139dn_hw_ack_irq ( struct r8139dn_priv * priv )
 {
     r8139dn_w16 ( ISR, INT_CLEAR );
 }
