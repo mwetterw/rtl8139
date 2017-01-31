@@ -1,5 +1,4 @@
-#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
-
+#include "common.h"
 #include "net.h"
 #include "hw.h"
 

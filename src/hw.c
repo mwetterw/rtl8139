@@ -1,3 +1,4 @@
+#include "common.h"
 #include "hw.h"
 
 // Ask the hardware to reset
