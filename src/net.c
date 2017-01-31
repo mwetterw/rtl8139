@@ -83,7 +83,7 @@ static int r8139dn_net_open ( struct net_device * ndev )
     int irq = priv -> pdev -> irq;
     void * tx_buffer_cpu;
     dma_addr_t tx_buffer_dma;
-    int err;
+    int err, i;
 
     if ( netif_msg_ifup ( priv ) )
     {
@@ -109,6 +109,15 @@ static int r8139dn_net_open ( struct net_device * ndev )
         return -ENOMEM;
     }
 
+    // Initialize the TX ring
+    // cpu and hw fields are reset by r8139dn_hw_reset
+    priv -> tx_ring.dma = tx_buffer_dma;
+    for ( i = 0; i < R8139DN_TX_DESC_NB ; ++i )
+    {
+        // Initialize our index of TX buffers addresses
+        priv -> tx_ring.data [ i ] = tx_buffer_cpu + i * R8139DN_TX_DESC_SIZE;
+    }
+
     // Issue a software reset
     r8139dn_hw_reset ( priv );
 
@@ -117,7 +126,7 @@ static int r8139dn_net_open ( struct net_device * ndev )
 
     // Enable TX, load default TX settings
     // and inform the hardware where our shared memory is (DMA)
-    r8139dn_hw_setup_tx ( priv, tx_buffer_cpu, tx_buffer_dma );
+    r8139dn_hw_setup_tx ( priv );
 
     // Assume link is down unless proven otherwise
     // Then, make an initial link check to find out

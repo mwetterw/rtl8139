@@ -139,8 +139,8 @@ void r8139dn_hw_eeprom_mac_to_kernel ( struct net_device * ndev )
 }
 
 // Enable the transmitter, set up the transmission settings
-// Tell hardware where to DMA and initialize TX ring
-void r8139dn_hw_setup_tx ( struct r8139dn_priv * priv, void * cpu, dma_addr_t dma )
+// Tell hardware where to DMA
+void r8139dn_hw_setup_tx ( struct r8139dn_priv * priv )
 {
     int i;
 
@@ -154,18 +154,11 @@ void r8139dn_hw_setup_tx ( struct r8139dn_priv * priv, void * cpu, dma_addr_t dm
     // It means we put data on the wire only once FIFO has reached this threshold
     priv -> tx_flags = ( 3 << TSD_ERTXTH_SHIFT );
 
-    // Setup TX Ring
-    priv -> tx_ring.dma = dma;
-    priv -> tx_ring.cpu = 0;
-    priv -> tx_ring.hw = 0;
+    // Inform the hardware about the DMA location of the TX descriptors
+    // That way, later it can read the frames we want to send
     for ( i = 0; i < R8139DN_TX_DESC_NB ; ++i )
     {
-        // Initialize our index of TX buffers addresses
-        priv -> tx_ring.data [ i ] = cpu + i * R8139DN_TX_DESC_SIZE;
-
-        // Inform the hardware about the DMA location of the TX descriptors
-        // That way, later it can read the frames we want to send
-        r8139dn_w32 ( TSAD0 + i * TSAD_GAP, dma + i * R8139DN_TX_DESC_SIZE );
+        r8139dn_w32 ( TSAD0 + i * TSAD_GAP, priv -> tx_ring.dma + i * R8139DN_TX_DESC_SIZE );
     }
 }
 
