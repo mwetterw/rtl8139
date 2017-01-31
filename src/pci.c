@@ -32,18 +32,10 @@ struct pci_driver r8139dn_pci_driver =
 int r8139dn_pci_probe ( struct pci_dev * pdev, const struct pci_device_id * id )
 {
     int err;
+    u32 version;
     unsigned int len;
     void __iomem * mmio;
     struct device * dev = & pdev -> dev;
-
-    dev_info ( dev, "Device detected\n" );
-
-    // We only support revision 0x10 for now.
-    if ( pdev -> revision != 0x10 )
-    {
-        dev_err ( dev, "This device (rtl8139 revision %02x) is not supported\n", pdev -> revision );
-        return -ENODEV;
-    }
 
     // Enable our PCI device so that it is woken up
     err = pci_enable_device ( pdev );
@@ -88,6 +80,16 @@ int r8139dn_pci_probe ( struct pci_dev * pdev, const struct pci_device_id * id )
         goto err_resource;
     }
 
+    // Get the chipset version, display it, and cancel the probe if we don't support it
+    version = ioread32 ( mmio + TCR ) & TCR_HWVERID_MASK;
+    dev_info ( dev, "Chipset detected: %s (rev %x)\n", r8139dn_hw_version_str ( version ), pdev -> revision );
+    if ( version != RTL8100B_8139D )
+    {
+        dev_err ( dev, "Sorry, this chipset is not supported yet. :(\n" );
+        err = -ENODEV;
+        goto err_chip_not_supported;
+    }
+
     // Enable DMA by setting master bit in PCI_COMMAND register
     pci_set_master ( pdev );
 
@@ -102,6 +104,7 @@ int r8139dn_pci_probe ( struct pci_dev * pdev, const struct pci_device_id * id )
 
 err_register:
     pci_clear_master ( pdev );
+err_chip_not_supported:
     pci_iounmap ( pdev, mmio );
 err_resource:
     pci_release_regions ( pdev );

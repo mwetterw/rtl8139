@@ -14,6 +14,7 @@ void r8139dn_hw_enable_irq ( struct r8139dn_priv * priv );
 void r8139dn_hw_clear_irq ( struct r8139dn_priv * priv );
 void r8139dn_hw_disable_irq ( struct r8139dn_priv * priv );
 u16 r8139dn_eeprom_read ( struct r8139dn_priv * priv, u8 word_addr );
+const char * r8139dn_hw_version_str ( u32 version );
 
 // BAR, Base Address Registers in the PCI Configuration Space
 enum
@@ -119,6 +120,7 @@ enum
 
     // TX Configuration Register
     TCR       = 0x40,
+        TCR_HWVERID_MASK    = 0x7cc00000,
         // Interframe Gap Time
         TCR_IFG_SHIFT       = 24,
             TCR_IFG_84      = ( 0 << TCR_IFG_SHIFT ), // 8.4 us / 840 ns
@@ -262,6 +264,19 @@ enum
     CONFIG5   = 0xd8,
 
     // Reserved until 0xff
+};
+
+// Helpers to decode HWVERID in TCR (chipset versions)
+enum
+{
+    RTL8139        = BIT ( 30 ) | BIT ( 29 ),
+    RTL8139A       = BIT ( 30 ) | BIT ( 29 ) | BIT ( 28 ),
+    RTL8139AG_C    = BIT ( 30 ) | BIT ( 29 ) | BIT ( 28 ) | BIT ( 26 ),
+    RTL8139B_8130  = BIT ( 30 ) | BIT ( 29 ) | BIT ( 28 ) | BIT ( 27 ),
+    RTL8100        = BIT ( 30 ) | BIT ( 29 ) | BIT ( 28 ) | BIT ( 27 ) | BIT ( 23 ),
+    RTL8100B_8139D = BIT ( 30 ) | BIT ( 29 ) | BIT ( 28 ) | BIT ( 26 ) | BIT ( 22 ),
+    RTL8139CP      = BIT ( 30 ) | BIT ( 29 ) | BIT ( 28 ) | BIT ( 26 ) | BIT ( 23 ),
+    RTL8101        = BIT ( 30 ) | BIT ( 29 ) | BIT ( 28 ) | BIT ( 26 ) | BIT ( 23 ) | BIT ( 22 ),
 };
 
 #define r8139dn_r8(reg)  ioread8  ( priv->mmio + ( reg ) )

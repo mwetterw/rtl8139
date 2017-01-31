@@ -184,3 +184,30 @@ void r8139dn_hw_disable_irq ( struct r8139dn_priv * priv )
 {
     r8139dn_w16 ( IMR, 0 );
 }
+
+// Convert the chipset version number to an understandable string
+const char * r8139dn_hw_version_str ( u32 version )
+{
+    switch ( version )
+    {
+        case RTL8139:
+            return "RTL8139";
+        case RTL8139A:
+            return "RTL8139A";
+        case RTL8139AG_C:
+            return "RTL8139AG/8139C";
+        case RTL8139B_8130:
+            return "RTL8139B/8130";
+        case RTL8100:
+            return "RTL8100";
+        case RTL8100B_8139D:
+            return "RTL8100B/8139D";
+        case RTL8139CP:
+            return "RTL8139C+";
+        case RTL8101:
+            return "RTL8101";
+
+        default:
+            return "Unknown";
+    }
+}
