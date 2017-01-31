@@ -1,3 +1,5 @@
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
+
 #include "pci.h"
 #include "net.h"
 #include "hw.h"
@@ -32,13 +34,14 @@ int r8139dn_pci_probe ( struct pci_dev * pdev, const struct pci_device_id * id )
     int err;
     unsigned int len;
     void __iomem * mmio;
+    struct device * dev = & pdev -> dev;
 
-    pr_info ( "Device detected\n" );
+    dev_info ( dev, "Device detected\n" );
 
     // We only support revision 0x10 for now.
     if ( pdev -> revision != 0x10 )
     {
-        pr_err ( "This device (rtl8139 revision %02x) is not supported\n", pdev -> revision );
+        dev_err ( dev, "This device (rtl8139 revision %02x) is not supported\n", pdev -> revision );
         return -ENODEV;
     }
 
@@ -62,7 +65,8 @@ int r8139dn_pci_probe ( struct pci_dev * pdev, const struct pci_device_id * id )
     len = pci_resource_len ( pdev, R8139DN_MEMAR );
     if ( len < R8139DN_IO_SIZE )
     {
-        pr_err ( "Insufficient region size. Minimum required: %do, got %do.\n", R8139DN_IO_SIZE, len );
+        dev_err ( dev, "Insufficient region size. Minimum required: %do, got %do.\n",
+                R8139DN_IO_SIZE, len );
         err = -ENODEV;
         goto err_resource;
     }
@@ -70,7 +74,7 @@ int r8139dn_pci_probe ( struct pci_dev * pdev, const struct pci_device_id * id )
     // We want to make sure the region we believe is MEMAR really is.
     if ( ! ( pci_resource_flags ( pdev, R8139DN_MEMAR ) & IORESOURCE_MEM ) )
     {
-        pr_err ( "Invalid region type. This should be a MMIO region.\n" );
+        dev_err ( dev, "Invalid region type. This should be a MMIO region.\n" );
         err = -ENODEV;
         goto err_resource;
     }
@@ -79,7 +83,7 @@ int r8139dn_pci_probe ( struct pci_dev * pdev, const struct pci_device_id * id )
     mmio = pci_iomap ( pdev, R8139DN_MEMAR, len );
     if ( ! mmio )
     {
-        pr_err ( "Unable to map the MMIO.\n" );
+        dev_err ( dev, "Unable to map the MMIO.\n" );
         err = -ENODEV;
         goto err_resource;
     }
@@ -110,10 +114,11 @@ err_init:
 // This will also be the case if our module is unloaded from the kernel.
 void r8139dn_pci_remove ( struct pci_dev * pdev )
 {
+    struct device * dev = & pdev -> dev;
     struct net_device * ndev;
     struct r8139dn_priv * priv;
 
-    pr_info ( "Device left\n" );
+    dev_info ( dev, "Device left\n" );
 
     // Retrieve the network device from the PCI device
     ndev = pci_get_drvdata ( pdev );
