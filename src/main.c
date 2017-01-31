@@ -19,7 +19,7 @@ static int __init r8139dn_mod_init ( void )
     return pci_register_driver ( & r8139dn_pci_driver );
 }
 
-// r8139dn_mod_init will be called whenever our module is unloaded from kernel memory.
+// r8139dn_mod_exit will be called whenever our module is unloaded from kernel memory.
 static void __exit r8139dn_mod_exit ( void )
 {
     // Remove the PCI driver from the kernel list so that we won't be a driver candidate anymore.
