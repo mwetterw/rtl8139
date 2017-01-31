@@ -109,9 +109,7 @@ static int r8139dn_net_open ( struct net_device * ndev )
         return -ENOMEM;
     }
 
-    priv -> tx_buffer_cpu = tx_buffer_cpu;
-    priv -> tx_buffer_dma = tx_buffer_dma;
-
+    // Issue a software reset
     r8139dn_hw_reset ( priv );
 
     // Restore what the kernel thinks our MAC is to our IDR registers
@@ -119,7 +117,7 @@ static int r8139dn_net_open ( struct net_device * ndev )
 
     // Enable TX, load default TX settings
     // and inform the hardware where our shared memory is (DMA)
-    r8139dn_hw_setup_tx ( priv );
+    r8139dn_hw_setup_tx ( priv, tx_buffer_cpu, tx_buffer_dma );
 
     // Assume link is down unless proven otherwise
     // Then, make an initial link check to find out
@@ -140,11 +138,11 @@ static int r8139dn_net_open ( struct net_device * ndev )
 static netdev_tx_t r8139dn_net_start_xmit ( struct sk_buff * skb, struct net_device * ndev )
 {
     struct r8139dn_priv * priv = netdev_priv ( ndev );
-    void * descriptor;
+    struct r8139dn_tx_ring * ring = & priv -> tx_ring;
     u32 flags;
     u16 len;
 
-    netdev_dbg ( ndev, "TX request! (%d bytes)\n", skb -> len );
+    netdev_dbg ( ndev, "TX request! (%d bytes, %d|%d)\n", skb -> len, ring -> hw, ring -> cpu );
 
     len = skb -> len;
 
@@ -160,20 +158,17 @@ static netdev_tx_t r8139dn_net_start_xmit ( struct sk_buff * skb, struct net_dev
         return NETDEV_TX_OK;
     }
 
-    descriptor =
-        priv -> tx_buffer_cpu + priv -> tx_buffer_our_pos * R8139DN_TX_DESC_SIZE;
-
     // We need to implement padding if the frame is too short
     // Our hardware doesn't handle this
     if ( len < ETH_ZLEN )
     {
-        memset ( descriptor + len, 0, ETH_ZLEN - len );
+        memset ( ring -> data [ ring -> cpu ] + len, 0, ETH_ZLEN - len );
         len = ETH_ZLEN;
     }
 
     // Copy the packet to the shared memory with the hardware
     // This also adds the CRC FCS (computed by the software)
-    skb_copy_and_csum_dev ( skb, descriptor );
+    skb_copy_and_csum_dev ( skb, ring -> data [ ring -> cpu ] );
 
     // Get rid of the now useless sk_buff :'(
     // Yes, it's the deep down bottom of the TCP/IP stack here :-)
@@ -183,16 +178,18 @@ static netdev_tx_t r8139dn_net_start_xmit ( struct sk_buff * skb, struct net_dev
     flags = priv -> tx_flags | len;
 
     // Transmit frame to the world, to __THE INTERNET__!
-    r8139dn_w32 ( TSD0 + priv -> tx_buffer_our_pos * TSD_GAP, flags );
+    r8139dn_w32 ( TSD0 + ring -> cpu * TSD_GAP, flags );
 
-    // Move our own position
-    priv -> tx_buffer_our_pos =
-        ( priv -> tx_buffer_our_pos + 1 ) % R8139DN_TX_DESC_NB;
+    // Move our own position (and modulo it)
+    if ( ++ring -> cpu >= R8139DN_TX_DESC_NB )
+    {
+        ring -> cpu = 0;
+    }
 
     // If our network card is overwhelmed with packets to transmit
     // We need to tell the kernel to stop giving us packets
     // That way, we don't overwrite packets that haven't been processed yet
-    if ( priv -> tx_buffer_our_pos == priv -> tx_buffer_hw_pos )
+    if ( ring -> cpu == ring -> hw )
     {
         netdev_dbg ( ndev, "TX buffers full, stopping queue\n" );
         netif_stop_queue ( ndev );
@@ -206,6 +203,7 @@ static irqreturn_t r8139dn_net_interrupt ( int irq, void * dev )
     struct net_device * ndev = ( struct net_device * ) dev;
     struct r8139dn_priv * priv = netdev_priv ( ndev );
     u16 isr = r8139dn_r16 ( ISR );
+    struct r8139dn_tx_ring * tx_ring = & priv -> tx_ring;
 
     netdev_dbg ( ndev, "IRQ (ISR: %04x)\n", isr );
 
@@ -225,8 +223,19 @@ static irqreturn_t r8139dn_net_interrupt ( int irq, void * dev )
         r8139dn_net_check_link ( ndev );
     }
 
+    // We have some TX homework to do :)
+    if ( isr & ( INT_TOK | INT_TER ) )
+    {
+        while ( tx_ring -> hw != tx_ring -> cpu )
+        {
+            // Acknowledge TX packet
+            if ( ++tx_ring -> hw >= R8139DN_TX_DESC_NB )
+            {
+                tx_ring -> hw = 0;
+            }
+        }
+    }
 
-irq_ack:
     // Acknowledge interrupts so that they don't fire several times
     r8139dn_hw_ack_irq ( priv );
     return IRQ_HANDLED;
@@ -280,7 +289,7 @@ static int r8139dn_net_close ( struct net_device * ndev )
 
     // Free TX DMA memory
     dma_free_coherent ( & ( priv -> pdev -> dev ), R8139DN_TX_DMA_SIZE,
-            priv -> tx_buffer_cpu, priv -> tx_buffer_dma );
+            priv -> tx_ring.data [ 0 ], priv -> tx_ring.dma );
 
     // Unhook our handler from the IRQ line
     free_irq ( irq, ndev );

@@ -3,12 +3,13 @@
 
 #include <linux/netdevice.h>
 #include <linux/io.h>
-#include "net.h"
+
+struct r8139dn_priv;
 
 void r8139dn_hw_reset ( struct r8139dn_priv * priv );
 void r8139dn_hw_eeprom_mac_to_kernel ( struct net_device * ndev );
 void r8139dn_hw_kernel_mac_to_regs ( struct net_device * ndev );
-void r8139dn_hw_setup_tx ( struct r8139dn_priv * priv );
+void r8139dn_hw_setup_tx ( struct r8139dn_priv * priv, void * cpu, dma_addr_t dma );
 void r8139dn_hw_disable_transceiver ( struct r8139dn_priv * priv );
 void r8139dn_hw_enable_irq ( struct r8139dn_priv * priv );
 void r8139dn_hw_ack_irq ( struct r8139dn_priv * priv );

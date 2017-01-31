@@ -1,6 +1,8 @@
 #ifndef _R8139DN_NET_H
 #define _R8139DN_NET_H
 
+#include "hw.h"
+
 #include <linux/netdevice.h>
 #include <linux/etherdevice.h>
 #include <linux/pci.h>
@@ -13,10 +15,21 @@ struct r8139dn_priv
     struct pci_dev * pdev;
     void __iomem * mmio;
 
-    void * tx_buffer_cpu;
-    dma_addr_t tx_buffer_dma;
-    int tx_buffer_our_pos;
-    int tx_buffer_hw_pos;
+    struct r8139dn_tx_ring
+    {
+        // Index of the ring's buffers addresses (in CPU virtual kernel memory space)
+        void * data [ R8139DN_TX_DESC_NB ];
+
+        // Address hardware has to use in Bus Address Space to access our data buffers above
+        dma_addr_t dma;
+
+        // These are the position of the CPU and of the hardware
+        // Position of the CPU is the next buffer we are going to write to
+        // Position of the hardware is the first un-acknowledged buffer (buffer we cannot write to)
+        u8 cpu;
+        u8 hw;
+    } tx_ring;
+
     u32 tx_flags;
 };
 

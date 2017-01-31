@@ -1,5 +1,6 @@
 #include "common.h"
 #include "hw.h"
+#include "net.h"
 
 // Ask the hardware to reset
 // This will disable TX and RX, reset FIFOs,
@@ -27,8 +28,8 @@ void r8139dn_hw_reset ( struct r8139dn_priv * priv )
 
     // Resetting the chip also resets hardware TX pointer to TSAD0
     // So we need to keep track of this, and we also reset our own position
-    priv -> tx_buffer_hw_pos = 0;
-    priv -> tx_buffer_our_pos = 0;
+    priv -> tx_ring.hw = 0;
+    priv -> tx_ring.cpu = 0;
 }
 
 // Read a word (16 bits) from the EEPROM at word_addr address
@@ -138,8 +139,8 @@ void r8139dn_hw_eeprom_mac_to_kernel ( struct net_device * ndev )
 }
 
 // Enable the transmitter, set up the transmission settings
-// and tell hardware where to DMA
-void r8139dn_hw_setup_tx ( struct r8139dn_priv * priv )
+// Tell hardware where to DMA and initialize TX ring
+void r8139dn_hw_setup_tx ( struct r8139dn_priv * priv, void * cpu, dma_addr_t dma )
 {
     int i;
 
@@ -153,12 +154,18 @@ void r8139dn_hw_setup_tx ( struct r8139dn_priv * priv )
     // It means we put data on the wire only once FIFO has reached this threshold
     priv -> tx_flags = ( 3 << TSD_ERTXTH_SHIFT );
 
-    // Inform the hardware about the DMA location of the TX descriptors
-    // That way, later it can read the frames we want to send
+    // Setup TX Ring
+    priv -> tx_ring.dma = dma;
+    priv -> tx_ring.cpu = 0;
+    priv -> tx_ring.hw = 0;
     for ( i = 0; i < R8139DN_TX_DESC_NB ; ++i )
     {
-        r8139dn_w32 ( TSAD0 + i * TSAD_GAP,
-                ( priv -> tx_buffer_dma ) + ( i * R8139DN_TX_DESC_SIZE ) );
+        // Initialize our index of TX buffers addresses
+        priv -> tx_ring.data [ i ] = cpu + i * R8139DN_TX_DESC_SIZE;
+
+        // Inform the hardware about the DMA location of the TX descriptors
+        // That way, later it can read the frames we want to send
+        r8139dn_w32 ( TSAD0 + i * TSAD_GAP, dma + i * R8139DN_TX_DESC_SIZE );
     }
 }
 
