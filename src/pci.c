@@ -36,6 +36,8 @@ int r8139dn_pci_probe ( struct pci_dev * pdev, const struct pci_device_id * id )
     void __iomem * mmio;
     struct device * dev = & pdev -> dev;
 
+    dev_dbg ( dev, "PCI device is being probed\n" );
+
     // Enable our PCI device so that it is woken up
     err = pci_enable_device ( pdev );
     if ( err )
@@ -120,8 +122,6 @@ void r8139dn_pci_remove ( struct pci_dev * pdev )
     struct net_device * ndev;
     struct r8139dn_priv * priv;
 
-    dev_info ( dev, "Device left\n" );
-
     // Retrieve the network device from the PCI device
     ndev = pci_get_drvdata ( pdev );
 
@@ -140,6 +140,11 @@ void r8139dn_pci_remove ( struct pci_dev * pdev )
     // Release ownership of PCI regions (BAR0 -> BAR1)
     // Our entry in /proc/iomem and /proc/ioports will disappear
     pci_release_regions ( pdev );
+
+    if ( netif_msg_probe ( priv ) )
+    {
+        dev_info ( dev, "PCI device removed\n" );
+    }
 
     // Free the structure representing our eth interface
     free_netdev ( ndev );

@@ -72,6 +72,11 @@ int r8139dn_net_init ( struct pci_dev * pdev, void __iomem * mmio )
     // So we store it. Later we can retrieve it with pci_get_drvdata
     pci_set_drvdata ( pdev, ndev );
 
+    if ( netif_msg_probe ( priv ) )
+    {
+        netdev_info ( ndev, "Ready!\n" );
+    }
+
     return 0;
 }
 
