@@ -195,10 +195,8 @@ static netdev_tx_t r8139dn_net_start_xmit ( struct sk_buff * skb, struct net_dev
     r8139dn_w32 ( TSD0 + ring -> cpu * TSD_GAP, flags );
 
     // Move our own position (and modulo it)
-    if ( ++ring -> cpu >= R8139DN_TX_DESC_NB )
-    {
-        ring -> cpu = 0;
-    }
+    BUILD_BUG_ON_NOT_POWER_OF_2 ( R8139DN_TX_DESC_NB );
+    ring -> cpu = ( ring -> cpu + 1 ) & ( R8139DN_TX_DESC_NB - 1 );
 
     // If our network card is overwhelmed with packets to transmit
     // We need to tell the kernel to stop giving us packets
@@ -243,10 +241,8 @@ static irqreturn_t r8139dn_net_interrupt ( int irq, void * dev )
         while ( tx_ring -> hw != tx_ring -> cpu )
         {
             // Acknowledge TX packet
-            if ( ++tx_ring -> hw >= R8139DN_TX_DESC_NB )
-            {
-                tx_ring -> hw = 0;
-            }
+            BUILD_BUG_ON_NOT_POWER_OF_2 ( R8139DN_TX_DESC_NB );
+            tx_ring -> hw = ( tx_ring -> hw + 1 ) & ( R8139DN_TX_DESC_NB - 1 );
         }
     }
 

@@ -32,7 +32,7 @@ enum
 #define R8139DN_MAX_ETH_SIZE 1792
 
 // Number and size of TX descriptors
-#define R8139DN_TX_DESC_NB 4
+#define R8139DN_TX_DESC_NB 4 // Warning: we use a property requiring this to be a power of 2
 #define R8139DN_TX_DESC_SIZE R8139DN_MAX_ETH_SIZE
 #define R8139DN_TX_DMA_SIZE ( R8139DN_TX_DESC_SIZE * R8139DN_TX_DESC_NB )
 
