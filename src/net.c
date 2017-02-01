@@ -313,7 +313,7 @@ static void r8139dn_net_check_link ( struct net_device * ndev )
     u8 msr = r8139dn_r8 ( MSR );
 
     // If the link was down but is now up, tell the kernel
-    if ( ! netif_carrier_ok ( ndev ) && ! ( msr & MSR_LINKB ) )
+    if ( ! netif_carrier_ok ( ndev ) && ! ( msr & MSR_LINK_BAD ) )
     {
         if ( netif_msg_link ( priv ) )
         {
@@ -323,7 +323,7 @@ static void r8139dn_net_check_link ( struct net_device * ndev )
     }
 
     // If the link was up but is now down, tell the kernel
-    else if ( netif_carrier_ok ( ndev ) && ( msr & MSR_LINKB ) )
+    else if ( netif_carrier_ok ( ndev ) && ( msr & MSR_LINK_BAD ) )
     {
         if ( netif_msg_link ( priv ) )
         {

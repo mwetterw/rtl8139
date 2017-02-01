@@ -193,7 +193,7 @@ enum
         // Reserved             5
         MSR_AUX_STATUS = ( 1 << 4 ), // Auxiliary Power Present Status
         MSR_SPD_10     = ( 1 << 3 ), // 0: 100Mps, 1: 10Mps
-        MSR_LINKB      = ( 1 << 2 ), // 0: Link OK, 1: Link fail
+        MSR_LINK_BAD   = ( 1 << 2 ), // 0: Link OK, 1: Link fail
         MSR_TXPF       = ( 1 << 1 ), // 0: Sends timer done packet, 1: Sends Pause Packet
         MSR_RXPF       = ( 1 << 0 ), // 0: Pause state clear, 1: Backoff state because Pause Packet received
 
