@@ -26,8 +26,7 @@ struct r8139dn_priv
         // These are the position of the CPU and of the hardware
         // Position of the CPU is the next buffer we are going to write to
         // Position of the hardware is the first un-acknowledged buffer (buffer we cannot write to)
-        u8 cpu;
-        u8 hw;
+        int cpu, hw;
     } tx_ring;
 
     u32 tx_flags;

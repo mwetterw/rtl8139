@@ -149,14 +149,26 @@ static int r8139dn_net_open ( struct net_device * ndev )
 }
 
 // The kernel gives us a packet to transmit by calling this function
+// This function will never run in parallel with itself (thanks to the xmit_lock spinlock)
+// We don't need to protect us from ourselves, but care is needed for shared data with TX IRQ handler
 static netdev_tx_t r8139dn_net_start_xmit ( struct sk_buff * skb, struct net_device * ndev )
 {
     struct r8139dn_priv * priv = netdev_priv ( ndev );
     struct r8139dn_tx_ring * ring = & priv -> tx_ring;
     u32 flags;
     u16 len;
+    int cpu, hw;
 
-    netdev_dbg ( ndev, "TX request! (%d bytes, %d|%d)\n", skb -> len, ring -> hw, ring -> cpu );
+    // We can safely read our cpu position without any protection
+    // Nobody except us (start_xmit) will ever update this variable
+    cpu = ring -> cpu;
+
+    // Care must be taken when retrieving the hw position,
+    // as TX IRQ handler may change its value at any time on another CPU
+    // Make sure we see the last updated value since TX IRQ handler's last store_release
+    hw = smp_load_acquire ( & ring -> hw );
+
+    netdev_dbg ( ndev, "TX request! (%d bytes, %d|%d)\n", skb -> len, hw, cpu );
 
     len = skb -> len;
 
@@ -176,13 +188,13 @@ static netdev_tx_t r8139dn_net_start_xmit ( struct sk_buff * skb, struct net_dev
     // Our hardware doesn't handle this
     if ( len < ETH_ZLEN )
     {
-        memset ( ring -> data [ ring -> cpu ] + len, 0, ETH_ZLEN - len );
+        memset ( ring -> data [ cpu ] + len, 0, ETH_ZLEN - len );
         len = ETH_ZLEN;
     }
 
     // Copy the packet to the shared memory with the hardware
     // This also adds the CRC FCS (computed by the software)
-    skb_copy_and_csum_dev ( skb, ring -> data [ ring -> cpu ] );
+    skb_copy_and_csum_dev ( skb, ring -> data [ cpu ] );
 
     // Get rid of the now useless sk_buff :'(
     // Yes, it's the deep down bottom of the TCP/IP stack here :-)
@@ -192,16 +204,18 @@ static netdev_tx_t r8139dn_net_start_xmit ( struct sk_buff * skb, struct net_dev
     flags = priv -> tx_flags | len;
 
     // Transmit frame to the world, to __THE INTERNET__!
-    r8139dn_w32 ( TSD0 + ring -> cpu * TSD_GAP, flags );
+    r8139dn_w32 ( TSD0 + cpu * TSD_GAP, flags );
 
     // Move our own position (and modulo it)
+    // TX IRQ handler is going to read the cpu pos, be careful when updating it
+    // Make sure TX IRQ handler will see the new value upon next load_acquire
     BUILD_BUG_ON_NOT_POWER_OF_2 ( R8139DN_TX_DESC_NB );
-    ring -> cpu = ( ring -> cpu + 1 ) & ( R8139DN_TX_DESC_NB - 1 );
+    smp_store_release ( & ring -> cpu, ( cpu + 1 ) & ( R8139DN_TX_DESC_NB - 1 ) );
 
     // If our network card is overwhelmed with packets to transmit
     // We need to tell the kernel to stop giving us packets
     // That way, we don't overwrite packets that haven't been processed yet
-    if ( ring -> cpu == ring -> hw )
+    if ( ring -> cpu == hw )
     {
         netdev_dbg ( ndev, "TX buffers full, stopping queue\n" );
         netif_stop_queue ( ndev );
@@ -216,6 +230,7 @@ static irqreturn_t r8139dn_net_interrupt ( int irq, void * dev )
     struct r8139dn_priv * priv = netdev_priv ( ndev );
     u16 isr = r8139dn_r16 ( ISR );
     struct r8139dn_tx_ring * tx_ring = & priv -> tx_ring;
+    int cpu;
 
     netdev_dbg ( ndev, "IRQ (ISR: %04x)\n", isr );
 
@@ -238,11 +253,16 @@ static irqreturn_t r8139dn_net_interrupt ( int irq, void * dev )
     // We have some TX homework to do :)
     if ( isr & ( INT_TOK | INT_TER ) )
     {
-        while ( tx_ring -> hw != tx_ring -> cpu )
+        // Care must be taken when retrieving cpu pos as start_xmit may update it on another CPU
+        // Make sure our CPU sees the updated value made by the last store_release in start_xmit
+        cpu = smp_load_acquire ( & tx_ring -> cpu );
+
+        // While the TX ring buffer is not empty
+        while ( tx_ring -> hw != cpu )
         {
             // Acknowledge TX packet
             BUILD_BUG_ON_NOT_POWER_OF_2 ( R8139DN_TX_DESC_NB );
-            tx_ring -> hw = ( tx_ring -> hw + 1 ) & ( R8139DN_TX_DESC_NB - 1 );
+            smp_store_release ( & tx_ring -> hw, ( tx_ring -> hw + 1 ) & ( R8139DN_TX_DESC_NB - 1 ) );
         }
     }
 
