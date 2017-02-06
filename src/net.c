@@ -7,6 +7,7 @@
 #include <linux/interrupt.h>    // IRQF_SHARED, irqreturn_t, request_irq, free_irq
 
 static irqreturn_t r8139dn_net_interrupt ( int irq, void * dev );
+static void r8139dn_net_interrupt_tx ( struct net_device * ndev );
 
 static int r8139dn_net_open ( struct net_device * ndev );
 static netdev_tx_t r8139dn_net_start_xmit ( struct sk_buff * skb, struct net_device * ndev );
@@ -228,10 +229,7 @@ static irqreturn_t r8139dn_net_interrupt ( int irq, void * dev )
 {
     struct net_device * ndev = ( struct net_device * ) dev;
     struct r8139dn_priv * priv = netdev_priv ( ndev );
-    struct r8139dn_tx_ring * tx_ring = & priv -> tx_ring;
     u16 isr = r8139dn_r16 ( ISR );
-    int cpu, * hw;
-    u32 tsd;
 
     // Shared IRQ... Return immediately if we have actually nothing to do
     // Tell the kernel our device was not the trigger for this interrupt
@@ -257,36 +255,48 @@ static irqreturn_t r8139dn_net_interrupt ( int irq, void * dev )
     // We have some TX homework to do :)
     if ( isr & ( INT_TOK | INT_TER ) )
     {
-        // This IRQ handler is the only one updating the hw pos
-        // No protection needed. We point to the original shared memory
-        hw = & tx_ring -> hw;
-
-        // Care must be taken when retrieving cpu pos as start_xmit may update it on another CPU
-        // Make sure our CPU sees the updated value made by the last store_release in start_xmit
-        cpu = smp_load_acquire ( & tx_ring -> cpu );
-
-        // While the TX ring buffer is not empty
-        while ( * hw != cpu )
-        {
-            // Fetch the transmit status of current TX buffer
-            // (Network card fills this for us to report TX result for each buffer)
-            tsd = r8139dn_r32 ( TSD0 + * hw * TSD_GAP );
-            netdev_dbg ( ndev, "TSD%d: %08x\n", * hw, tsd & ~ ( TSD_ERTXTH | TSD_SIZE ) );
-
-            // Hardware hasn't given any feedback on the transmission of this buffer
-            // This means it hasn't been TX yet. It's still in the FIFO, moving to line
-            if ( ! ( tsd & ( TSD_TOK | TSD_TUN | TSD_TABT ) ) )
-            {
-                break;
-            }
-
-            // Increment the hardware position (mark current buffer as free for start_xmit)
-            BUILD_BUG_ON_NOT_POWER_OF_2 ( R8139DN_TX_DESC_NB );
-            smp_store_release ( hw, ( * hw + 1 ) & ( R8139DN_TX_DESC_NB - 1 ) );
-        }
+        r8139dn_net_interrupt_tx ( ndev );
     }
 
     return IRQ_HANDLED;
+}
+
+// This function does the TX homework during interruption
+// It checks the status of each packet in the ring buffer and acknowledges it
+static void r8139dn_net_interrupt_tx ( struct net_device * ndev )
+{
+    struct r8139dn_priv * priv = netdev_priv ( ndev );
+    struct r8139dn_tx_ring * tx_ring = & priv -> tx_ring;
+    int cpu, * hw;
+    u32 tsd;
+
+    // IRQ handler is the only place updating the hw pos
+    // No protection needed. We point to the original shared memory
+    hw = & tx_ring -> hw;
+
+    // Care must be taken when retrieving cpu pos as start_xmit may update it on another CPU
+    // Make sure our CPU sees the updated value made by the last store_release in start_xmit
+    cpu = smp_load_acquire ( & tx_ring -> cpu );
+
+    // While the TX ring buffer is not empty
+    while ( * hw != cpu )
+    {
+        // Fetch the transmit status of current TX buffer
+        // (Network card fills this for us to report TX result for each buffer)
+        tsd = r8139dn_r32 ( TSD0 + * hw * TSD_GAP );
+        netdev_dbg ( ndev, "TSD%d: %08x\n", * hw, tsd & ~ ( TSD_ERTXTH | TSD_SIZE ) );
+
+        // Hardware hasn't given any feedback on the transmission of this buffer
+        // This means it hasn't been TX yet. It's still in the FIFO, moving to line
+        if ( ! ( tsd & ( TSD_TOK | TSD_TUN | TSD_TABT ) ) )
+        {
+            break;
+        }
+
+        // Increment the hardware position (mark current buffer as free for start_xmit)
+        BUILD_BUG_ON_NOT_POWER_OF_2 ( R8139DN_TX_DESC_NB );
+        smp_store_release ( hw, ( * hw + 1 ) & ( R8139DN_TX_DESC_NB - 1 ) );
+    }
 }
 
 // Called when someone requests our stats
