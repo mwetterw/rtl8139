@@ -216,9 +216,10 @@ static netdev_tx_t r8139dn_net_start_xmit ( struct sk_buff * skb, struct net_dev
     // If our network card is overwhelmed with packets to transmit
     // We need to tell the kernel to stop giving us packets
     // That way, we don't overwrite packets that haven't been processed yet
-    if ( ring -> cpu == hw )
+    // TX buffer is full when abs(hw - cpu) is 1. Because when 0, it means empty
+    if ( ( ( hw - ring -> cpu ) & ( R8139DN_TX_DESC_NB - 1 ) ) == 1 )
     {
-        netdev_dbg ( ndev, "TX buffers full, stopping queue\n" );
+        netdev_dbg ( ndev, "TX ring buffer full, stopping queue\n" );
         netif_stop_queue ( ndev );
     }
 
