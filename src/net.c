@@ -268,17 +268,19 @@ static void r8139dn_net_interrupt_tx ( struct net_device * ndev )
 {
     struct r8139dn_priv * priv = netdev_priv ( ndev );
     struct r8139dn_tx_ring * tx_ring = & priv -> tx_ring;
-    int cpu, * hw;
+    int cpu, * hw, hw_old;
     u32 tsd;
 
     // IRQ handler is the only place updating the hw pos
-    // No protection needed. We point to the original shared memory
+    // No protection is required when retrieving the value
     hw = & tx_ring -> hw;
+    hw_old = * hw;
 
     // Care must be taken when retrieving cpu pos as start_xmit may update it on another CPU
     // Make sure our CPU sees the updated value made by the last store_release in start_xmit
     cpu = smp_load_acquire ( & tx_ring -> cpu );
 
+    // Empty as many buffers as possible in only one interrupt
     // While the TX ring buffer is not empty
     while ( * hw != cpu )
     {
@@ -294,9 +296,18 @@ static void r8139dn_net_interrupt_tx ( struct net_device * ndev )
             break;
         }
 
-        // Increment the hardware position (mark current buffer as free for start_xmit)
+        // Packet has been moved to line successfuly, increment hw position
+        // This marks current buffer as free for start_xmit
         BUILD_BUG_ON_NOT_POWER_OF_2 ( R8139DN_TX_DESC_NB );
         smp_store_release ( hw, ( * hw + 1 ) & ( R8139DN_TX_DESC_NB - 1 ) );
+    }
+
+    // If the queue was stopped (buffer full) and we've just freed some space, awake queue!
+    // Kernel will resume calling start_xmit callback
+    if ( netif_queue_stopped ( ndev ) && * hw != hw_old )
+    {
+        netdev_dbg ( ndev, "TX ring buffer has free space, awaking queue\n" );
+        netif_wake_queue ( ndev );
     }
 }
 
