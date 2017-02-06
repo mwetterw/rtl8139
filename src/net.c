@@ -230,7 +230,8 @@ static irqreturn_t r8139dn_net_interrupt ( int irq, void * dev )
     struct r8139dn_priv * priv = netdev_priv ( ndev );
     struct r8139dn_tx_ring * tx_ring = & priv -> tx_ring;
     u16 isr = r8139dn_r16 ( ISR );
-    int cpu;
+    int cpu, * hw;
+    u32 tsd;
 
     // Shared IRQ... Return immediately if we have actually nothing to do
     // Tell the kernel our device was not the trigger for this interrupt
@@ -256,16 +257,32 @@ static irqreturn_t r8139dn_net_interrupt ( int irq, void * dev )
     // We have some TX homework to do :)
     if ( isr & ( INT_TOK | INT_TER ) )
     {
+        // This IRQ handler is the only one updating the hw pos
+        // No protection needed. We point to the original shared memory
+        hw = & tx_ring -> hw;
+
         // Care must be taken when retrieving cpu pos as start_xmit may update it on another CPU
         // Make sure our CPU sees the updated value made by the last store_release in start_xmit
         cpu = smp_load_acquire ( & tx_ring -> cpu );
 
         // While the TX ring buffer is not empty
-        while ( tx_ring -> hw != cpu )
+        while ( * hw != cpu )
         {
-            // Acknowledge TX packet
+            // Fetch the transmit status of current TX buffer
+            // (Network card fills this for us to report TX result for each buffer)
+            tsd = r8139dn_r32 ( TSD0 + * hw * TSD_GAP );
+            netdev_dbg ( ndev, "TSD%d: %08x\n", * hw, tsd & ~ ( TSD_ERTXTH | TSD_SIZE ) );
+
+            // Hardware hasn't given any feedback on the transmission of this buffer
+            // This means it hasn't been TX yet. It's still in the FIFO, moving to line
+            if ( ! ( tsd & ( TSD_TOK | TSD_TUN | TSD_TABT ) ) )
+            {
+                break;
+            }
+
+            // Increment the hardware position (mark current buffer as free for start_xmit)
             BUILD_BUG_ON_NOT_POWER_OF_2 ( R8139DN_TX_DESC_NB );
-            smp_store_release ( & tx_ring -> hw, ( tx_ring -> hw + 1 ) & ( R8139DN_TX_DESC_NB - 1 ) );
+            smp_store_release ( hw, ( * hw + 1 ) & ( R8139DN_TX_DESC_NB - 1 ) );
         }
     }
 
