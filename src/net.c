@@ -177,7 +177,7 @@ static netdev_tx_t r8139dn_net_start_xmit ( struct sk_buff * skb, struct net_dev
     {
         if ( netif_msg_tx_err ( priv ) )
         {
-            netdev_dbg ( ndev, "TX dropped! (%d bytes is too big for me)\n", len + ETH_FCS_LEN );
+            netdev_err ( ndev, "TX dropped! (%d bytes is too big for me)\n", len + ETH_FCS_LEN );
         }
         dev_kfree_skb ( skb );
         // TODO: Update stats
