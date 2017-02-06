@@ -228,11 +228,9 @@ static irqreturn_t r8139dn_net_interrupt ( int irq, void * dev )
 {
     struct net_device * ndev = ( struct net_device * ) dev;
     struct r8139dn_priv * priv = netdev_priv ( ndev );
-    u16 isr = r8139dn_r16 ( ISR );
     struct r8139dn_tx_ring * tx_ring = & priv -> tx_ring;
+    u16 isr = r8139dn_r16 ( ISR );
     int cpu;
-
-    netdev_dbg ( ndev, "IRQ (ISR: %04x)\n", isr );
 
     // Shared IRQ... Return immediately if we have actually nothing to do
     // Tell the kernel our device was not the trigger for this interrupt
@@ -240,6 +238,11 @@ static irqreturn_t r8139dn_net_interrupt ( int irq, void * dev )
     {
         return IRQ_NONE;
     }
+
+    netdev_dbg ( ndev, "IRQ (ISR: %04x)\n", isr );
+
+    // Acknowledge IRQ as fast as possible
+    r8139dn_w16 ( ISR, isr );
 
     // The link status changed.
     if ( isr & INT_LNKCHG_PUN )
@@ -266,8 +269,6 @@ static irqreturn_t r8139dn_net_interrupt ( int irq, void * dev )
         }
     }
 
-    // Acknowledge interrupts so that they don't fire several times
-    r8139dn_hw_ack_irq ( priv );
     return IRQ_HANDLED;
 }
 

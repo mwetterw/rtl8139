@@ -174,12 +174,6 @@ void r8139dn_hw_enable_irq ( struct r8139dn_priv * priv )
     r8139dn_w16 ( IMR, INT_TER | INT_TOK | INT_LNKCHG_PUN );
 }
 
-// Clear interrupts
-void r8139dn_hw_ack_irq ( struct r8139dn_priv * priv )
-{
-    r8139dn_w16 ( ISR, INT_CLEAR );
-}
-
 // Ask the device to disable interrupts
 void r8139dn_hw_disable_irq ( struct r8139dn_priv * priv )
 {
