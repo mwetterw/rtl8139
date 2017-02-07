@@ -60,7 +60,7 @@ int r8139dn_pci_probe ( struct pci_dev * pdev, const struct pci_device_id * id )
     {
         dev_err ( dev, "Insufficient region size. Minimum required: %do, got %do.\n",
                 R8139DN_IO_SIZE, len );
-        err = -ENODEV;
+        err = -EIO;
         goto err_resource;
     }
 
@@ -68,7 +68,7 @@ int r8139dn_pci_probe ( struct pci_dev * pdev, const struct pci_device_id * id )
     if ( ! ( pci_resource_flags ( pdev, R8139DN_MEMAR ) & IORESOURCE_MEM ) )
     {
         dev_err ( dev, "Invalid region type. This should be a MMIO region.\n" );
-        err = -ENODEV;
+        err = -EIO;
         goto err_resource;
     }
 
@@ -77,7 +77,7 @@ int r8139dn_pci_probe ( struct pci_dev * pdev, const struct pci_device_id * id )
     if ( ! mmio )
     {
         dev_err ( dev, "Unable to map the MMIO.\n" );
-        err = -ENODEV;
+        err = -EIO;
         goto err_resource;
     }
 
