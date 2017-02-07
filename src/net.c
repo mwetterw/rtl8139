@@ -102,6 +102,7 @@ static int r8139dn_net_open ( struct net_device * ndev )
     {
         return err;
     }
+    ndev -> irq = irq;
 
     // Allocate a DMA buffer so that the hardware and the driver
     // share a common memory for packet transmission.
@@ -345,7 +346,6 @@ static int r8139dn_net_set_mac_addr ( struct net_device * ndev, void * addr )
 static int r8139dn_net_close ( struct net_device * ndev )
 {
     struct r8139dn_priv * priv = netdev_priv ( ndev );
-    int irq = priv -> pdev -> irq;
 
     if ( netif_msg_ifdown ( priv ) )
     {
@@ -363,7 +363,7 @@ static int r8139dn_net_close ( struct net_device * ndev )
             priv -> tx_ring.data [ 0 ], priv -> tx_ring.dma );
 
     // Unhook our handler from the IRQ line
-    free_irq ( irq, ndev );
+    free_irq ( ndev -> irq, ndev );
 
     return 0;
 }
