@@ -129,6 +129,10 @@ enum
             TCR_IFG_92      = ( 2 << TCR_IFG_SHIFT ), // 9.2 us / 920 ns
             TCR_IFG_96      = ( 3 << TCR_IFG_SHIFT ), // 9.6 us / 960 ns
             TCR_IFG_DEFAULT = TCR_IFG_96,
+        // Loopback mode
+        TCR_LBK_SHIFT       = 17,
+            TCR_LBK_DISABLE = ( 0 << TCR_LBK_SHIFT ),
+            TCR_LBK_ENABLE  = ( 3 << TCR_LBK_SHIFT ),   // Packets won't really be TXed
         // Append FCS at the end of the frame?
         TCR_CRC             = ( 1 << 16 ),
         // Max DMA Burst (16 -> 2048 bytes)
