@@ -236,6 +236,7 @@ static irqreturn_t r8139dn_net_interrupt ( int irq, void * dev )
     // Tell the kernel our device was not the trigger for this interrupt
     if ( ! isr )
     {
+        netdev_dbg ( ndev, "IRQ_NONE\n" );
         return IRQ_NONE;
     }
 
