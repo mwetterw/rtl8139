@@ -65,18 +65,18 @@ enum
     TSD2      = 0x18,
     TSD3      = 0x1c,
     TSD_GAP  = ( TSD1 - TSD0 ),
-        TSD_CRS    = ( 1 << 31 ),
-        TSD_TABT   = ( 1 << 30 ),
-        TSD_OWC    = ( 1 << 29 ),
-        TSD_CDH    = ( 1 << 28 ),
-        TSD_NCC    = ( 0xff << 24 ),
+        TSD_CRS    = ( 1 << 31 ),       // Carrier Sense Lost during TX
+        TSD_TABT   = ( 1 << 30 ),       // TX Abort, because TX Retry Count has been reached
+        TSD_OWC    = ( 1 << 29 ),       // Out of Window Collision during TX
+        TSD_CDH    = ( 1 << 28 ),       // NIC failed to send CD Heart Beat
+        TSD_NCC    = ( 0xff << 24 ),    // Number of Collision Count
         // Reserved 23 -> 22
-        TSD_ERTXTH_SHIFT = 16,
+        TSD_ERTXTH_SHIFT = 16,          // Early TX Threshold (TX FIFO Threshold)
             TSD_ERTXTH = ( 0x3f << TSD_ERTXTH_SHIFT ),
-        TSD_TOK    = ( 1 << 15 ),
-        TSD_TUN    = ( 1 << 14 ),
-        TSD_OWN    = ( 1 << 13 ),
-        TSD_SIZE   = ( 0x1fff ),
+        TSD_TOK    = ( 1 << 15 ),       // TX OK (TX happened successfully)
+        TSD_TUN    = ( 1 << 14 ),       // TX Underrun (ISR can be TOK or TER)
+        TSD_OWN    = ( 1 << 13 ),       // Own (DMA transfer completed)
+        TSD_SIZE   = ( 0x1fff ),        // Size of Ethernet frame to send
 
     // Transmit Start Address of Descriptor Registers
     TSAD0     = 0x20,
@@ -111,7 +111,7 @@ enum
         INT_FOVW       = ( 1 << 6 ), // RX FIFO Overflow
         INT_LNKCHG_PUN = ( 1 << 5 ), // Link Change / RX Packet Underrun
         INT_RXOVW      = ( 1 << 4 ), // RX Buffer Overflow
-        INT_TER        = ( 1 << 3 ), // TX Error
+        INT_TER        = ( 1 << 3 ), // TX Error (TX Underrun or TX Abort)
         INT_TOK        = ( 1 << 2 ), // TX OK
         INT_RER        = ( 1 << 1 ), // RX Error (CRC or frame alignment error)
         INT_ROK        = ( 1 << 0 ), // RX OK
