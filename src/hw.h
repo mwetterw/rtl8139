@@ -32,6 +32,7 @@ enum
 
 // Maximum Ethernet frame size that can be handled by the device
 #define R8139DN_MAX_ETH_SIZE 1792
+#define R8139DN_MAX_MTU ( R8139DN_MAX_ETH_SIZE - ETH_HLEN - ETH_FCS_LEN )
 
 // Number and size of TX descriptors
 #define R8139DN_TX_DESC_NB 4 // Warning: we use a property requiring this to be a power of 2

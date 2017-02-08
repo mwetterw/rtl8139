@@ -8,12 +8,15 @@
 
 static irqreturn_t r8139dn_net_interrupt ( int irq, void * dev );
 static void r8139dn_net_interrupt_tx ( struct net_device * ndev );
+static void r8139dn_net_check_link ( struct net_device * ndev );
 
 static int r8139dn_net_open ( struct net_device * ndev );
 static netdev_tx_t r8139dn_net_start_xmit ( struct sk_buff * skb, struct net_device * ndev );
-static int r8139dn_net_set_mac_addr ( struct net_device * ndev, void * addr );
 static int r8139dn_net_close ( struct net_device * ndev );
-static void r8139dn_net_check_link ( struct net_device * ndev );
+
+static int r8139dn_net_set_mac_addr ( struct net_device * ndev, void * addr );
+static int r8139dn_net_set_mtu ( struct net_device * ndev, int mtu );
+
 
 static int debug = -1;
 module_param ( debug, int, 0 );
@@ -25,8 +28,10 @@ static struct net_device_ops r8139dn_ops =
 {
     .ndo_open = r8139dn_net_open,
     .ndo_start_xmit = r8139dn_net_start_xmit,
-    .ndo_set_mac_address = r8139dn_net_set_mac_addr,
     .ndo_stop = r8139dn_net_close,
+
+    .ndo_set_mac_address = r8139dn_net_set_mac_addr,
+    .ndo_change_mtu      = r8139dn_net_set_mtu,
 };
 
 int r8139dn_net_init ( struct pci_dev * pdev, void __iomem * mmio )
@@ -170,6 +175,7 @@ static netdev_tx_t r8139dn_net_start_xmit ( struct sk_buff * skb, struct net_dev
 
     netdev_dbg ( ndev, "TX request! (%d bytes, %d|%d)\n", skb -> len, hw, cpu );
 
+    // This length is Ethernet header + payload, but without the FCS
     len = skb -> len;
 
     // Drop packets that are too big for us
@@ -388,4 +394,18 @@ static void r8139dn_net_check_link ( struct net_device * ndev )
         }
         netif_carrier_off ( ndev );
     }
+}
+
+// Called when the user wants to change the MTU
+// ip link set mtu 1500 dev eth0
+static int r8139dn_net_set_mtu ( struct net_device * ndev, int mtu )
+{
+    // Very low MTU is allowed because we'll proceed with padding in start_xmit anyway
+    if ( mtu > R8139DN_MAX_MTU || mtu <= 0 )
+    {
+        return -EINVAL;
+    }
+
+    ndev -> mtu = mtu;
+    return 0;
 }
