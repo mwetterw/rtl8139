@@ -11,7 +11,6 @@ static void r8139dn_net_interrupt_tx ( struct net_device * ndev );
 
 static int r8139dn_net_open ( struct net_device * ndev );
 static netdev_tx_t r8139dn_net_start_xmit ( struct sk_buff * skb, struct net_device * ndev );
-static struct rtnl_link_stats64 * r8139dn_net_fill_stats ( struct net_device * ndev, struct rtnl_link_stats64 * stats );
 static int r8139dn_net_set_mac_addr ( struct net_device * ndev, void * addr );
 static int r8139dn_net_close ( struct net_device * ndev );
 static void r8139dn_net_check_link ( struct net_device * ndev );
@@ -26,7 +25,6 @@ static struct net_device_ops r8139dn_ops =
 {
     .ndo_open = r8139dn_net_open,
     .ndo_start_xmit = r8139dn_net_start_xmit,
-    .ndo_get_stats64 = r8139dn_net_fill_stats,
     .ndo_set_mac_address = r8139dn_net_set_mac_addr,
     .ndo_stop = r8139dn_net_close,
 };
@@ -182,7 +180,8 @@ static netdev_tx_t r8139dn_net_start_xmit ( struct sk_buff * skb, struct net_dev
             netdev_err ( ndev, "TX dropped! (%d bytes is too big for me)\n", len + ETH_FCS_LEN );
         }
         dev_kfree_skb ( skb );
-        // TODO: Update stats
+        ndev -> stats.tx_errors++;
+        ndev -> stats.tx_dropped++;
         return NETDEV_TX_OK;
     }
 
@@ -298,8 +297,11 @@ static void r8139dn_net_interrupt_tx ( struct net_device * ndev )
             break;
         }
 
-        // Packet has been moved to line successfuly, increment hw position
-        // This marks current buffer as free for start_xmit
+        // Packet has been moved to line successfuly!
+        ndev -> stats.tx_packets++;
+        ndev -> stats.tx_bytes += ( tsd & TSD_SIZE );
+
+        // Increment hw position (marks current buffer as free for start_xmit)
         BUILD_BUG_ON_NOT_POWER_OF_2 ( R8139DN_TX_DESC_NB );
         smp_store_release ( hw, ( * hw + 1 ) & ( R8139DN_TX_DESC_NB - 1 ) );
     }
@@ -311,13 +313,6 @@ static void r8139dn_net_interrupt_tx ( struct net_device * ndev )
         netdev_dbg ( ndev, "TX ring buffer has free space, awaking queue\n" );
         netif_wake_queue ( ndev );
     }
-}
-
-// Called when someone requests our stats
-static struct rtnl_link_stats64 * r8139dn_net_fill_stats ( struct net_device * ndev, struct rtnl_link_stats64 * stats )
-{
-    // TODO
-    return stats;
 }
 
 // Called when user wants to change the MAC address
