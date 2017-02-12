@@ -303,9 +303,34 @@ static void r8139dn_net_interrupt_tx ( struct net_device * ndev )
             break;
         }
 
-        // Packet has been moved to line successfuly!
-        ndev -> stats.tx_packets++;
-        ndev -> stats.tx_bytes += ( tsd & TSD_SIZE );
+        if ( tsd & TSD_TOK )
+        {
+            // Packet has been moved to line successfuly!
+            ndev -> stats.tx_packets++;
+            ndev -> stats.tx_bytes += ( tsd & TSD_SIZE );
+        }
+        else
+        {
+            // There was some TX error, first log it
+            if ( netif_msg_tx_err ( priv ) )
+            {
+                netdev_err ( ndev, "TX error (buf %d): %08x\n", * hw, tsd );
+            }
+
+            // We've cleared TER at beginning of IRQ but it might have been set again
+            r8139dn_w16 ( ISR, INT_TER );
+            ndev -> stats.tx_errors++;
+
+            if ( tsd & TSD_TABT )
+            {
+                ndev -> stats.tx_aborted_errors++;
+            }
+
+            if ( tsd & TSD_TUN )
+            {
+                ndev -> stats.tx_fifo_errors++;
+            }
+        }
 
         // Increment hw position (marks current buffer as free for start_xmit)
         BUILD_BUG_ON_NOT_POWER_OF_2 ( R8139DN_TX_DESC_NB );
