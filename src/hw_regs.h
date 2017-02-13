@@ -196,6 +196,37 @@ enum TCR
         TCR_MXDMA_2048  = ( 7 << TCR_MXDMA_SHIFT ),
 };
 
+// RX Configuration Register
+enum RCR
+{
+    // Early RX Threshold multiplier of the whole packet (0/16 -> 16/16)
+    RCR_ERTH_SHIFT  = 24,
+        RCR_ERTH    = ( 0xf << RCR_ERTH_SHIFT ),
+    // Reserved        23 -> 18
+    RCR_MUL_ER_INT  = ( 1 << 17 ),              // Multiple Early Interrupt
+    RCR_RER8        = ( 1 << 16 ),              // Receive Error packet > 8 bytes
+    // RX FIFO Threshold
+    // Threshold = 2^(4 + RXFTH) bytes. 7: transfer when whole packet is in FIFO
+    RCR_RXFTH_SHIFT = 13,
+        RCR_RXFTH   = ( 7 << RCR_RXFTH_SHIFT ),
+    // RX Buffer Length
+    // Size = 2^(3 + RXLEN) * 1024 + 16 bytes
+    RCR_RBLEN_SHIFT = 11,
+        RCR_RBLEN   = ( 3 << RCR_RBLEN_SHIFT ),
+    // Max RX DMA Burst Size
+    // Burst size = 2^(4 + MXDMA) bytes. 7: unlimited burst size
+    RCR_MXDMA_SHIFT = 8,
+        RCR_MXDMA   = ( 7 << RCR_MXDMA_SHIFT ),
+    RCR_WRAP        = ( 1 << 7 ),
+    // Reserved              6
+    RCR_AER         = ( 1 << 5 ), // Accept ERror packets (CRC, align, collided)
+    RCR_AR          = ( 1 << 4 ), // Accept Runt (packets < 64 bytes but >= 8 bytes)
+    RCR_AB          = ( 1 << 3 ), // Accept Broadcast packets
+    RCR_AM          = ( 1 << 2 ), // Accept Multicast packets
+    RCR_APM         = ( 1 << 1 ), // Accept Physical Match packets
+    RCR_AAP         = ( 1 << 0 ), // Accept All packets
+};
+
 // Helpers to decode HWVERID in TCR (chipset versions)
 enum TCR_HWVERID
 {
