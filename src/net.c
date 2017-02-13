@@ -138,6 +138,9 @@ static int r8139dn_net_open ( struct net_device * ndev )
     // and inform the hardware where our shared memory is (DMA)
     r8139dn_hw_setup_tx ( priv );
 
+    // Enable RX, load default RX settings
+    r8139dn_hw_setup_rx ( priv );
+
     // Assume link is down unless proven otherwise
     // Then, make an initial link check to find out
     netif_carrier_off ( ndev );
