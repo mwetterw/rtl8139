@@ -18,6 +18,7 @@ static int r8139dn_net_close ( struct net_device * ndev );
 static int r8139dn_net_set_mac_addr ( struct net_device * ndev, void * addr );
 static int r8139dn_net_set_mtu ( struct net_device * ndev, int mtu );
 
+static int _r8139dn_net_init_tx_ring ( struct r8139dn_priv * priv );
 
 static int debug = -1;
 module_param ( debug, int, 0 );
@@ -94,9 +95,7 @@ static int r8139dn_net_open ( struct net_device * ndev )
 {
     struct r8139dn_priv * priv = netdev_priv ( ndev );
     int irq = priv -> pdev -> irq;
-    void * tx_buffer_cpu;
-    dma_addr_t tx_buffer_dma;
-    int err, i;
+    int err;
 
     if ( netif_msg_ifup ( priv ) )
     {
@@ -111,25 +110,11 @@ static int r8139dn_net_open ( struct net_device * ndev )
     }
     ndev -> irq = irq;
 
-    // Allocate a DMA buffer so that the hardware and the driver
-    // share a common memory for packet transmission.
-    // Later we will pass the tx_buffer_dma address to the hardware
-    tx_buffer_cpu = dma_alloc_coherent ( & ( priv -> pdev -> dev ),
-            R8139DN_TX_DMA_SIZE, & tx_buffer_dma, GFP_KERNEL );
-
-    if ( ! tx_buffer_cpu )
+    // Allocate TX DMA and initialize TX ring
+    err = _r8139dn_net_init_tx_ring ( priv );
+    if ( err )
     {
-        free_irq ( irq, ndev );
-        return -ENOMEM;
-    }
-
-    // Initialize the TX ring
-    // cpu and hw fields are reset by r8139dn_hw_reset
-    priv -> tx_ring.dma = tx_buffer_dma;
-    for ( i = 0; i < R8139DN_TX_DESC_NB ; ++i )
-    {
-        // Initialize our index of TX buffers addresses
-        priv -> tx_ring.data [ i ] = tx_buffer_cpu + i * R8139DN_TX_DESC_SIZE;
+        goto err_init_tx_ring;
     }
 
     // Issue a software reset
@@ -158,6 +143,10 @@ static int r8139dn_net_open ( struct net_device * ndev )
     r8139dn_hw_enable_irq ( priv );
 
     return 0;
+
+err_init_tx_ring:
+    free_irq ( irq, ndev );
+    return err;
 }
 
 // The kernel gives us a packet to transmit by calling this function
@@ -455,5 +444,35 @@ static int r8139dn_net_set_mtu ( struct net_device * ndev, int mtu )
     }
 
     ndev -> mtu = mtu;
+    return 0;
+}
+
+// Allocate TX DMA memory and initialize TX ring
+static int _r8139dn_net_init_tx_ring ( struct r8139dn_priv * priv )
+{
+    void * tx_buffer_cpu;
+    dma_addr_t tx_buffer_dma;
+    int i;
+
+    // Allocate a DMA buffer so that the hardware and the driver
+    // share a common memory for packet transmission.
+    // Later we will pass the tx_buffer_dma address to the hardware
+    tx_buffer_cpu = dma_alloc_coherent ( & ( priv -> pdev -> dev ),
+            R8139DN_TX_DMA_SIZE, & tx_buffer_dma, GFP_KERNEL );
+
+    if ( ! tx_buffer_cpu )
+    {
+        return -ENOMEM;
+    }
+
+    // Initialize the TX ring
+    // cpu and hw fields are reset by r8139dn_hw_reset
+    priv -> tx_ring.dma = tx_buffer_dma;
+    for ( i = 0; i < R8139DN_TX_DESC_NB ; ++i )
+    {
+        // Initialize our index of TX buffers addresses
+        priv -> tx_ring.data [ i ] = tx_buffer_cpu + i * R8139DN_TX_DESC_SIZE;
+    }
+
     return 0;
 }
