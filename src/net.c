@@ -267,7 +267,7 @@ static irqreturn_t r8139dn_net_interrupt ( int irq, void * dev )
     }
 
     // We have some TX homework to do :)
-    if ( isr & ( INT_TOK | INT_TER ) )
+    if ( isr & INT_TX )
     {
         r8139dn_net_interrupt_tx ( ndev );
     }

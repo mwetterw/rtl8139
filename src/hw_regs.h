@@ -164,6 +164,9 @@ enum IMR_ISR
     INT_TOK         = ( 1 << 2 ), // TX OK
     INT_RER         = ( 1 << 1 ), // RX Error (CRC or frame alignment error)
     INT_ROK         = ( 1 << 0 ), // RX OK
+
+    INT_TX          = INT_TOK | INT_TER,
+    INT_RX          = INT_ROK | INT_RER | INT_RXOVW | INT_FOVW,
     INT_CLEAR       = 0xffff,
 };
 

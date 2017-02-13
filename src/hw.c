@@ -183,7 +183,7 @@ void r8139dn_hw_disable_transceiver ( struct r8139dn_priv * priv )
 // Ask the device to enable interrupts
 void r8139dn_hw_enable_irq ( struct r8139dn_priv * priv )
 {
-    r8139dn_w16 ( IMR, INT_TER | INT_TOK | INT_LNKCHG_PUN );
+    r8139dn_w16 ( IMR, INT_TX | INT_LNKCHG_PUN );
 }
 
 // Ask the device to disable interrupts
