@@ -232,7 +232,7 @@ static netdev_tx_t r8139dn_net_start_xmit ( struct sk_buff * skb, struct net_dev
     // TX buffer is full when abs(hw - cpu) is 1. Because when 0, it means empty
     if ( ( ( hw - ring -> cpu ) & ( R8139DN_TX_DESC_NB - 1 ) ) == 1 )
     {
-        netdev_dbg ( ndev, "TX ring buffer full, stopping queue\n" );
+        netdev_dbg ( ndev, "  TX ring buffer full, stopping queue\n" );
         netif_stop_queue ( ndev );
     }
 
@@ -261,7 +261,7 @@ static irqreturn_t r8139dn_net_interrupt ( int irq, void * dev )
     // The link status changed.
     if ( isr & INT_LNKCHG_PUN )
     {
-        netdev_dbg ( ndev, "Link Changed\n" );
+        netdev_dbg ( ndev, "  Link Changed\n" );
 
         // Let's check and inform the kernel about the change
         r8139dn_net_check_link ( ndev );
@@ -291,6 +291,8 @@ static void r8139dn_net_interrupt_tx ( struct net_device * ndev )
     int cpu, * hw, hw_old;
     u32 tsd;
 
+    netdev_dbg ( ndev, "  TX homework!\n" );
+
     // IRQ handler is the only place updating the hw pos
     // No protection is required when retrieving the value
     hw = & tx_ring -> hw;
@@ -307,7 +309,7 @@ static void r8139dn_net_interrupt_tx ( struct net_device * ndev )
         // Fetch the transmit status of current TX buffer
         // (Network card fills this for us to report TX result for each buffer)
         tsd = r8139dn_r32 ( TSD0 + * hw * TSD_GAP );
-        netdev_dbg ( ndev, "TSD%d: %08x\n", * hw, tsd & ~ ( TSD_ERTXTH | TSD_SIZE ) );
+        netdev_dbg ( ndev, "    TSD%d: %08x\n", * hw, tsd & ~ ( TSD_ERTXTH | TSD_SIZE ) );
 
         // Hardware hasn't given any feedback on the transmission of this buffer
         // This means it hasn't been TX yet. It's still in the FIFO, moving to line
@@ -354,7 +356,7 @@ static void r8139dn_net_interrupt_tx ( struct net_device * ndev )
     // Kernel will resume calling start_xmit callback
     if ( netif_queue_stopped ( ndev ) && * hw != hw_old )
     {
-        netdev_dbg ( ndev, "TX ring buffer has free space, awaking queue\n" );
+        netdev_dbg ( ndev, "    TX ring buffer has free space, awaking queue\n" );
         netif_wake_queue ( ndev );
     }
 }
@@ -364,7 +366,7 @@ static void r8139dn_net_interrupt_tx ( struct net_device * ndev )
 // We retrieve them from the buffer, create a skbbuf and give them to the kernel.
 static void r8139dn_net_interrupt_rx ( struct net_device * ndev )
 {
-    netdev_dbg ( ndev, "RX homework!\n" );
+    netdev_dbg ( ndev, "  RX homework!\n" );
 }
 
 // The kernel calls this when interface is set down
