@@ -153,18 +153,18 @@ enum CR
 // Interrupt (Mask or Status) Register
 enum IMR_ISR
 {
-    INT_SERR    = ( 1 << 15 ), // System Error (on the PCI Bus)
-    INT_TIMEOUT = ( 1 << 14 ),
-    INT_LENCHG  = ( 1 << 13 ), // Cable Length Changed after RX has been enabled
-    // Reserved     12 -> 7
-    INT_FOVW       = ( 1 << 6 ), // RX FIFO Overflow
-    INT_LNKCHG_PUN = ( 1 << 5 ), // Link Change / RX Packet Underrun
-    INT_RXOVW      = ( 1 << 4 ), // RX Buffer Overflow
-    INT_TER        = ( 1 << 3 ), // TX Error (TX Underrun or TX Abort)
-    INT_TOK        = ( 1 << 2 ), // TX OK
-    INT_RER        = ( 1 << 1 ), // RX Error (CRC or frame alignment error)
-    INT_ROK        = ( 1 << 0 ), // RX OK
-    INT_CLEAR      = 0xffff,
+    INT_SERR        = ( 1 << 15 ), // System Error (on the PCI Bus)
+    INT_TIMEOUT     = ( 1 << 14 ),
+    INT_LENCHG      = ( 1 << 13 ), // Cable Length Changed after RX has been enabled
+    // Reserved        12 -> 7
+    INT_FOVW        = ( 1 << 6 ), // RX FIFO Overflow
+    INT_LNKCHG_PUN  = ( 1 << 5 ), // Link Change / RX Packet Underrun
+    INT_RXOVW       = ( 1 << 4 ), // RX Buffer Overflow
+    INT_TER         = ( 1 << 3 ), // TX Error (TX Underrun or TX Abort)
+    INT_TOK         = ( 1 << 2 ), // TX OK
+    INT_RER         = ( 1 << 1 ), // RX Error (CRC or frame alignment error)
+    INT_ROK         = ( 1 << 0 ), // RX OK
+    INT_CLEAR       = 0xffff,
 };
 
 // TX Configuration Register
