@@ -8,6 +8,7 @@
 
 static irqreturn_t r8139dn_net_interrupt ( int irq, void * dev );
 static void r8139dn_net_interrupt_tx ( struct net_device * ndev );
+static void r8139dn_net_interrupt_rx ( struct net_device * ndev );
 static void r8139dn_net_check_link ( struct net_device * ndev );
 
 static int r8139dn_net_open ( struct net_device * ndev );
@@ -266,6 +267,12 @@ static irqreturn_t r8139dn_net_interrupt ( int irq, void * dev )
         r8139dn_net_check_link ( ndev );
     }
 
+    // We have some RX homework to do!
+    if ( isr & INT_RX )
+    {
+        r8139dn_net_interrupt_rx ( ndev );
+    }
+
     // We have some TX homework to do :)
     if ( isr & INT_TX )
     {
@@ -350,6 +357,14 @@ static void r8139dn_net_interrupt_tx ( struct net_device * ndev )
         netdev_dbg ( ndev, "TX ring buffer has free space, awaking queue\n" );
         netif_wake_queue ( ndev );
     }
+}
+
+// This function does the RX homework during interruption
+// The NIC retrieves packets from the cable and put them into a buffer.
+// We retrieve them from the buffer, create a skbbuf and give them to the kernel.
+static void r8139dn_net_interrupt_rx ( struct net_device * ndev )
+{
+    netdev_dbg ( ndev, "RX homework!\n" );
 }
 
 // The kernel calls this when interface is set down
