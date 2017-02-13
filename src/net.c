@@ -55,7 +55,7 @@ int r8139dn_net_init ( struct pci_dev * pdev, void __iomem * mmio )
     // Bind our driver functors struct to our net device
     ndev -> netdev_ops = & r8139dn_ops;
 
-    // Add our net device as a leaf to our PCI bus in /sys tree
+    // Add our net device as a leaf to our PCI device in /sys tree
     SET_NETDEV_DEV ( ndev, & ( pdev -> dev ) );
 
     // Ask the network card to do a soft reset
@@ -346,27 +346,6 @@ static void r8139dn_net_interrupt_tx ( struct net_device * ndev )
     }
 }
 
-// Called when user wants to change the MAC address
-// ip link set address 05:04:03:02:01:00 dev eth0
-static int r8139dn_net_set_mac_addr ( struct net_device * ndev, void * addr )
-{
-    struct sockaddr * mac_sa = addr;
-
-    // If the MAC address is not valid, just stop here
-    if ( ! is_valid_ether_addr ( mac_sa -> sa_data ) )
-    {
-        return -EADDRNOTAVAIL;
-    }
-
-    // Copy the desired MAC address to kernel (will update what kernel thinks our MAC is)
-    memcpy ( ndev -> dev_addr, mac_sa -> sa_data, ETH_ALEN );
-
-    // Really update what the network card thinks its MAC address is
-    r8139dn_hw_kernel_mac_to_regs ( ndev );
-
-    return 0;
-}
-
 // The kernel calls this when interface is set down
 // ip link set down dev eth0
 static int r8139dn_net_close ( struct net_device * ndev )
@@ -419,6 +398,27 @@ static void r8139dn_net_check_link ( struct net_device * ndev )
         }
         netif_carrier_off ( ndev );
     }
+}
+
+// Called when user wants to change the MAC address
+// ip link set address 05:04:03:02:01:00 dev eth0
+static int r8139dn_net_set_mac_addr ( struct net_device * ndev, void * addr )
+{
+    struct sockaddr * mac_sa = addr;
+
+    // If the MAC address is not valid, just stop here
+    if ( ! is_valid_ether_addr ( mac_sa -> sa_data ) )
+    {
+        return -EADDRNOTAVAIL;
+    }
+
+    // Copy the desired MAC address to kernel (will update what kernel thinks our MAC is)
+    memcpy ( ndev -> dev_addr, mac_sa -> sa_data, ETH_ALEN );
+
+    // Really update what the network card thinks its MAC address is
+    r8139dn_hw_kernel_mac_to_regs ( ndev );
+
+    return 0;
 }
 
 // Called when the user wants to change the MTU
