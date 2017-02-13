@@ -7,9 +7,9 @@
 #include <linux/interrupt.h>    // IRQF_SHARED, irqreturn_t, request_irq, free_irq
 
 static irqreturn_t r8139dn_net_interrupt ( int irq, void * dev );
-static void r8139dn_net_interrupt_tx ( struct net_device * ndev );
-static void r8139dn_net_interrupt_rx ( struct net_device * ndev );
-static void r8139dn_net_check_link ( struct net_device * ndev );
+static void _r8139dn_net_interrupt_tx ( struct net_device * ndev );
+static void _r8139dn_net_interrupt_rx ( struct net_device * ndev );
+static void _r8139dn_net_check_link ( struct net_device * ndev );
 
 static int r8139dn_net_open ( struct net_device * ndev );
 static netdev_tx_t r8139dn_net_start_xmit ( struct sk_buff * skb, struct net_device * ndev );
@@ -148,7 +148,7 @@ static int r8139dn_net_open ( struct net_device * ndev )
     // Assume link is down unless proven otherwise
     // Then, make an initial link check to find out
     netif_carrier_off ( ndev );
-    r8139dn_net_check_link ( ndev );
+    _r8139dn_net_check_link ( ndev );
 
     // Inform the kernel, that right after the completion of this ifup,
     // he can give us packets immediately: we are ready to be his postman!
@@ -264,19 +264,19 @@ static irqreturn_t r8139dn_net_interrupt ( int irq, void * dev )
         netdev_dbg ( ndev, "  Link Changed\n" );
 
         // Let's check and inform the kernel about the change
-        r8139dn_net_check_link ( ndev );
+        _r8139dn_net_check_link ( ndev );
     }
 
     // We have some RX homework to do!
     if ( isr & INT_RX )
     {
-        r8139dn_net_interrupt_rx ( ndev );
+        _r8139dn_net_interrupt_rx ( ndev );
     }
 
     // We have some TX homework to do :)
     if ( isr & INT_TX )
     {
-        r8139dn_net_interrupt_tx ( ndev );
+        _r8139dn_net_interrupt_tx ( ndev );
     }
 
     return IRQ_HANDLED;
@@ -284,7 +284,7 @@ static irqreturn_t r8139dn_net_interrupt ( int irq, void * dev )
 
 // This function does the TX homework during interruption
 // It checks the status of each packet in the ring buffer and acknowledges it
-static void r8139dn_net_interrupt_tx ( struct net_device * ndev )
+static void _r8139dn_net_interrupt_tx ( struct net_device * ndev )
 {
     struct r8139dn_priv * priv = netdev_priv ( ndev );
     struct r8139dn_tx_ring * tx_ring = & priv -> tx_ring;
@@ -364,7 +364,7 @@ static void r8139dn_net_interrupt_tx ( struct net_device * ndev )
 // This function does the RX homework during interruption
 // The NIC retrieves packets from the cable and put them into a buffer.
 // We retrieve them from the buffer, create a skbbuf and give them to the kernel.
-static void r8139dn_net_interrupt_rx ( struct net_device * ndev )
+static void _r8139dn_net_interrupt_rx ( struct net_device * ndev )
 {
     netdev_dbg ( ndev, "  RX homework!\n" );
 }
@@ -396,7 +396,7 @@ static int r8139dn_net_close ( struct net_device * ndev )
     return 0;
 }
 
-static void r8139dn_net_check_link ( struct net_device * ndev )
+static void _r8139dn_net_check_link ( struct net_device * ndev )
 {
     struct r8139dn_priv * priv = netdev_priv ( ndev );
     // Fetch the Media Status Register

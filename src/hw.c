@@ -2,6 +2,8 @@
 #include "hw.h"
 #include "net.h"
 
+static u16 _r8139dn_hw_eeprom_read ( struct r8139dn_priv * priv, u8 word_addr );
+
 // Ask the hardware to reset
 // This will disable TX and RX, reset FIFOs,
 // reset TX buffer at TSAD0, and set BUFE (RX buffer is empty)
@@ -17,7 +19,6 @@ void r8139dn_hw_reset ( struct r8139dn_priv * priv )
     // The chip notify us by clearing the bit
     while ( --i )
     {
-        // XXX Memory or Compiler Barrier needed?
         if ( ! ( r8139dn_r8 ( CR ) & CR_RST ) )
         {
             // Reset is complete!
@@ -36,7 +37,7 @@ void r8139dn_hw_reset ( struct r8139dn_priv * priv )
 // We could actually also use <linux/eeprom_93cx6.h> :)
 // EEPROM content is in the Little Endian fashion
 // But I make sure I return to you the value in your native CPU byte-order
-u16 r8139dn_eeprom_read ( struct r8139dn_priv * priv, u8 word_addr )
+static u16 _r8139dn_hw_eeprom_read ( struct r8139dn_priv * priv, u8 word_addr )
 {
     // The command is an 3 bits opcode (EE_READ) followed by 6 bits address
     u16 cmd = ( EE_CMD_READ << EE_ADDRLEN ) | word_addr;
@@ -134,7 +135,7 @@ void r8139dn_hw_eeprom_mac_to_kernel ( struct net_device * ndev )
 
     for ( i = 0 ; i < 3 ; ++i )
     {
-        ( ( u16 * ) ndev -> dev_addr ) [ i ] = r8139dn_eeprom_read ( priv, EE_DATA_MAC + i );
+        ( ( u16 * ) ndev -> dev_addr ) [ i ] = _r8139dn_hw_eeprom_read ( priv, EE_DATA_MAC + i );
     }
 }
 
