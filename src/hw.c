@@ -143,9 +143,10 @@ void r8139dn_hw_eeprom_mac_to_kernel ( struct net_device * ndev )
 void r8139dn_hw_setup_tx ( struct r8139dn_priv * priv )
 {
     int i;
+    u8 cr = r8139dn_r8 ( CR );
 
     // Turn the transmitter on
-    r8139dn_w8 ( CR, CR_TE );
+    r8139dn_w8 ( CR, cr | CR_TE );
 
     // Set up the TX settings
     r8139dn_w32 ( TCR, TCR_IFG_DEFAULT | TCR_MXDMA_1024 );
