@@ -285,6 +285,19 @@ enum EE
     EE_CR_CFG_WRITE_ENABLE = 0xc0, // Unlock write access to IDR0~5, CONFIG0~4 and bit 13,12,8 of BCMR
 };
 
+// Configuration Register 1
+enum CONFIG1
+{
+    // LEDS 0, 1 & 2 configuration (CFG1_LEDS_<0>_<1>_<2>)
+    // On my PCI adaptor, only LED0 & 1 are connected. There is no LED2.
+    CFG1_LEDS_SHIFT = 6,
+        CFG1_LEDS_TXRX_LNK100_LNK10 = ( 0 << CFG1_LEDS_SHIFT ),
+        CFG1_LEDS_TXRX_LNK_FDX      = ( 1 << CFG1_LEDS_SHIFT ),
+        CFG1_LEDS_TX_LNK_RX         = ( 2 << CFG1_LEDS_SHIFT ),
+        CFG1_LEDS_TX_LNK100_LNK10   = ( 3 << CFG1_LEDS_SHIFT ),
+        CFG1_LEDS_MASK              = CFG1_LEDS_TX_LNK100_LNK10,
+};
+
 // Media Status Register
 enum MSR
 {

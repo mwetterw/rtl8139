@@ -64,6 +64,9 @@ int r8139dn_net_init ( struct pci_dev * pdev, void __iomem * mmio )
     // Retrieve MAC address from device's EEPROM and tell the kernel
     r8139dn_hw_eeprom_mac_to_kernel ( ndev );
 
+    // Make RX activity also noticeable together with TX on LED0, we have no LED2 :'(
+    r8139dn_hw_configure_leds ( priv, CFG1_LEDS_TXRX_LNK_FDX );
+
     // Tell the kernel to show our eth interface to userspace (in ifconfig -a)
     err = register_netdev ( ndev );
     if ( err )

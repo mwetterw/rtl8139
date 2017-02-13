@@ -192,6 +192,26 @@ void r8139dn_hw_disable_irq ( struct r8139dn_priv * priv )
     r8139dn_w16 ( IMR, 0 );
 }
 
+// Configure the leds
+// led_cfg should be one of the CFG1_LEDS_<0>_<1>_<2> where each number
+// is to be replaced by the function to assign to that LED
+// My PCI adaptor doesn't have a LED2
+void r8139dn_hw_configure_leds ( struct r8139dn_priv * priv, u8 led_cfg )
+{
+    // Fetch CONFIG1 with LEDS bit zeroed
+    u8 cfg1 = r8139dn_r8 ( CONFIG1 ) & ~ CFG1_LEDS_MASK;
+
+    // CONFIG1 is write protected. Let's enable write
+    r8139dn_w8 ( EE_CR, EE_CR_CFG_WRITE_ENABLE );
+    {
+        // Configure the leds as requested, but be careful about led_cfg value
+        // We want to avoid changing CONFIG1 bits not related to the leds
+        r8139dn_w8 ( CONFIG1, cfg1 | ( led_cfg & CFG1_LEDS_MASK ) );
+    }
+    // Put config registers back to read-only mode
+    r8139dn_w8 ( EE_CR, EE_CR_NORMAL );
+}
+
 // Convert the chipset version number to an understandable string
 const char * r8139dn_hw_version_str ( u32 version )
 {
