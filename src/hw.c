@@ -163,6 +163,17 @@ void r8139dn_hw_setup_tx ( struct r8139dn_priv * priv )
     }
 }
 
+void r8139dn_hw_setup_rx ( struct r8139dn_priv * priv )
+{
+    u8 cr = r8139dn_r8 ( CR );
+
+    // Turn the receiver on
+    r8139dn_w8 ( CR, cr | CR_RE );
+
+    // Set up the RX settings
+    r8139dn_w32 ( RCR, RCR_MXDMA_1024 | RCR_APM );
+}
+
 // Disable transceiver (TX & RX)
 void r8139dn_hw_disable_transceiver ( struct r8139dn_priv * priv )
 {
