@@ -168,6 +168,9 @@ void r8139dn_hw_setup_rx ( struct r8139dn_priv * priv )
 {
     u8 cr = r8139dn_r8 ( CR );
 
+    // Disable Multiple Interrupt (we're going to disable early RX mode in RCR)
+    r8139dn_w16 ( MULINT, 0 );
+
     // Turn the receiver on
     r8139dn_w8 ( CR, cr | CR_RE );
 
