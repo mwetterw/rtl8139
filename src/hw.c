@@ -175,7 +175,7 @@ void r8139dn_hw_setup_rx ( struct r8139dn_priv * priv )
     r8139dn_w8 ( CR, cr | CR_RE );
 
     // Set up the RX settings
-    r8139dn_w32 ( RCR, RCR_MXDMA_1024 | RCR_APM );
+    r8139dn_w32 ( RCR, RCR_MXDMA_1024 | RCR_APM | RCR_AB );
 }
 
 // Disable transceiver (TX & RX)
