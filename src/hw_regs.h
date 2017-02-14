@@ -31,86 +31,86 @@ enum r8139dn_hw_regs
     TSAD2     = 0x28,
     TSAD3     = 0x2c,
 
-    RBSTART   = 0x30,
-    ERBCR     = 0x34,
-    ERSR      = 0x36,
+    RBSTART   = 0x30, // RX Buffer Start Address Register
+    ERBCR     = 0x34, // Early RX Byte Count Register
+    ERSR      = 0x36, // Early RX Status Register
     CR        = 0x37, // Command Register
-    CAPR      = 0x38,
-    CBR       = 0x3a,
+    CAPR      = 0x38, // Current Address of Packet Read (driver pos for RX)
+    CBR       = 0x3a, // Current Buffer Address (Total RX byte count)
     IMR       = 0x3c, // Interrupt Mask Register
     ISR       = 0x3e, // Interrupt Status Register
     TCR       = 0x40, // TX Configuration Register
-    RCR       = 0x44,
-    TCTR      = 0x48,
-    MPC       = 0x4c,
-    EE_CR     = 0x50, // EEPROM (93C46) Control Register
-    CONFIG0   = 0x51,
-    CONFIG1   = 0x52,
+    RCR       = 0x44, // RX Configuration Register
+    TCTR      = 0x48, // Timer CounT Register (general purpose timer)
+    MPC       = 0x4c, // Missed Packet Counter (RX FIFO OVW). 24 lower bits only
+    EE_CR     = 0x50, // EEPROM (93C46) Control Register + regs W protection
+    CONFIG0   = 0x51, // Scrambler, PCS & 10Mpbs modes, 10Mpbs medium type & Boot ROM size
+    CONFIG1   = 0x52, // LEDS, DVRLOAD, LWACT MEMMAP, IOMAP, VPD, PMEn
     // Reserved 0x53,
-    TIMERINT  = 0x54,
+    TIMERINT  = 0x54, // Timer Interrupt Register (set desired interval here)
     MSR       = 0x58, // Media Status Register
-    CONFIG3   = 0x59,
-    CONFIG4   = 0x5a,
+    CONFIG3   = 0x59, // PCI Grant signal select, PARM_EN, WOL, CLKRUN_EN, Fast Back to Back
+    CONFIG4   = 0x5a, // RXFAutoClr, AnaOff, Long Wakeup Frames, LW/PMEB, LW pattern, Preboot Wakeup
     // Reserved 0x5b,
-    MULINT    = 0x5c,
-    RERID     = 0x5e,
+    MULINT    = 0x5c, // Multiple Interrupt Select
+    RERID     = 0x5e, // PCI Revision ID
     // Reserved 0x5f,
     TSAD      = 0x60, // Transmit Status of All Descriptors
 
     // PHY registers
-    BMCR      = 0x62,
-    BMSR      = 0x64,
-    ANAR      = 0x66,
-    ANLPAR    = 0x68,
-    ANER      = 0x6a,
-    DIS       = 0x6c,
-    FCSC      = 0x6e,
-    NWAYTR    = 0x70,
-    RXERCNT   = 0x72,
-    CSCR      = 0x74,
+    BMCR      = 0x62, // Basic Mode Control Register                (MII 0)
+    BMSR      = 0x64, // Basic Mode Status Register                 (MII 1)
+    ANAR      = 0x66, // Auto-Negociation Advertisement Register    (MII 4)
+    ANLPAR    = 0x68, // Auto-Negociation Link Partner Register     (MII 5)
+    ANER      = 0x6a, // Auto-Negociation Expansion Register        (MII 6)
+    DIS       = 0x6c, // Disconnect Counter
+    FCSC      = 0x6e, // False Carrier Sense Counter
+    NWAYTR    = 0x70, // N-Way Test Register
+    RXERCNT   = 0x72, // RX ERror CouNTer
+    CSCR      = 0x74, // Carrier Sense Configuration Register
     // Reserved 0x76,
     // Reserved 0x77,
-    PHY1_PARM = 0x78,
-    TW_PARM   = 0x7c,
-    PHY2_PARM = 0x80,
+    PHY1_PARM = 0x78, // PHY Parameter 1                            (XXX MII 2?)
+    TW_PARM   = 0x7c, // Twister Parameter
+    PHY2_PARM = 0x80, // PHY Parameter 2                            (XXX MII 3?)
 
     // Reserved 0x81,
     // Reserved 0x82,
     // Reserved 0x83,
 
-    CRC0      = 0x84,
-    CRC1      = 0x85,
-    CRC2      = 0x86,
-    CRC3      = 0x87,
-    CRC4      = 0x88,
-    CRC5      = 0x89,
-    CRC6      = 0x8a,
-    CRC7      = 0x8b,
+    CRC0      = 0x84, // Power Management CRC register0 for Wakeup frame0
+    CRC1      = 0x85, // Power Management CRC register1 for Wakeup frame1
+    CRC2      = 0x86, // Power Management CRC register2 for Wakeup frame2
+    CRC3      = 0x87, // Power Management CRC register3 for Wakeup frame3
+    CRC4      = 0x88, // Power Management CRC register4 for Wakeup frame4
+    CRC5      = 0x89, // Power Management CRC register5 for Wakeup frame5
+    CRC6      = 0x8a, // Power Management CRC register6 for Wakeup frame6
+    CRC7      = 0x8b, // Power Management CRC register7 for Wakeup frame7
 
-    WAKEUP0   = 0x8c,
-    WAKEUP1   = 0x94,
-    WAKEUP2   = 0x9c,
-    WAKEUP3   = 0xa4,
-    WAKEUP4   = 0xac,
-    WAKEUP5   = 0xb4,
-    WAKEUP6   = 0xbc,
-    WAKEUP7   = 0xc4,
+    WAKEUP0   = 0x8c, // Power Management Wakeup frame0
+    WAKEUP1   = 0x94, // Power Management Wakeup frame1
+    WAKEUP2   = 0x9c, // Power Management Wakeup frame2
+    WAKEUP3   = 0xa4, // Power Management Wakeup frame3
+    WAKEUP4   = 0xac, // Power Management Wakeup frame4
+    WAKEUP5   = 0xb4, // Power Management Wakeup frame5
+    WAKEUP6   = 0xbc, // Power Management Wakeup frame6
+    WAKEUP7   = 0xc4, // Power Management Wakeup frame7
 
-    LSBCRC0   = 0xcc,
-    LSBCRC1   = 0xcd,
-    LSBCRC2   = 0xce,
-    LSBCRC3   = 0xcf,
-    LSBCRC4   = 0xd0,
-    LSBCRC5   = 0xd1,
-    LSBCRC6   = 0xd2,
-    LSBCRC7   = 0xd3,
+    LSBCRC0   = 0xcc, // LSB of the mask byte of Wakeup frame0 in offset 12 to 75
+    LSBCRC1   = 0xcd, // LSB of the mask byte of Wakeup frame1 in offset 12 to 75
+    LSBCRC2   = 0xce, // LSB of the mask byte of Wakeup frame2 in offset 12 to 75
+    LSBCRC3   = 0xcf, // LSB of the mask byte of Wakeup frame3 in offset 12 to 75
+    LSBCRC4   = 0xd0, // LSB of the mask byte of Wakeup frame4 in offset 12 to 75
+    LSBCRC5   = 0xd1, // LSB of the mask byte of Wakeup frame5 in offset 12 to 75
+    LSBCRC6   = 0xd2, // LSB of the mask byte of Wakeup frame6 in offset 12 to 75
+    LSBCRC7   = 0xd3, // LSB of the mask byte of Wakeup frame7 in offset 12 to 75
 
     // Reserved 0xd4,
     // Reserved 0xd5,
     // Reserved 0xd6,
     // Reserved 0xd7,
 
-    CONFIG5   = 0xd8,
+    CONFIG5   = 0xd8, // B/M/U-cast Wakeup frames, FIFO test, Link Down Power Saving, LW, PME_STS
 
     // Reserved until 0xff
 };
@@ -154,7 +154,7 @@ enum CR
 enum IMR_ISR
 {
     INT_SERR        = ( 1 << 15 ), // System Error (on the PCI Bus)
-    INT_TIMEOUT     = ( 1 << 14 ),
+    INT_TIMEOUT     = ( 1 << 14 ), // Timeout Interrupt (see TCTR and TIMERINT)
     INT_LENCHG      = ( 1 << 13 ), // Cable Length Changed after RX has been enabled
     // Reserved        12 -> 7
     INT_FOVW        = ( 1 << 6 ), // RX FIFO Overflow
@@ -173,7 +173,7 @@ enum IMR_ISR
 // TX Configuration Register
 enum TCR
 {
-    TCR_HWVERID_MASK    = 0x7cc00000,
+    TCR_HWVERID_MASK    = 0x7cc00000, // Mask to fetch the chip version
     // Interframe Gap Time
     TCR_IFG_SHIFT       = 24,
         TCR_IFG_84      = ( 0 << TCR_IFG_SHIFT ), // 8.4 us / 840 ns
@@ -185,7 +185,7 @@ enum TCR
     TCR_LBK_SHIFT       = 17,
         TCR_LBK_DISABLE = ( 0 << TCR_LBK_SHIFT ),
         TCR_LBK_ENABLE  = ( 3 << TCR_LBK_SHIFT ),   // Packets won't really be TXed
-    // Append FCS at the end of the frame?
+    // Append CRC FCS at the end of the frame?
     TCR_CRC             = ( 1 << 16 ),
     // Max DMA Burst (16 -> 2048 bytes)
     TCR_MXDMA_SHIFT     = 8,
@@ -207,7 +207,7 @@ enum RCR
         RCR_ERTH        = ( 0xf << RCR_ERTH_SHIFT ),
     // Reserved        23 -> 18
     RCR_MUL_ER_INT      = ( 1 << 17 ),              // Multiple Early Interrupt
-    RCR_RER8            = ( 1 << 16 ),              // Receive Error packet > 8 bytes
+    RCR_RER8            = ( 1 << 16 ),              // Receive Error packets (8 <= size < 64)?
     // RX FIFO Threshold
     // Threshold = 2^(4 + RXFTH) bytes. 7: transfer when whole packet is in FIFO
     RCR_RXFTH_SHIFT     = 13,
@@ -237,7 +237,7 @@ enum RCR
     RCR_AB          = ( 1 << 3 ), // Accept Broadcast packets
     RCR_AM          = ( 1 << 2 ), // Accept Multicast packets
     RCR_APM         = ( 1 << 1 ), // Accept Physical Match packets
-    RCR_AAP         = ( 1 << 0 ), // Accept All packets
+    RCR_AAP         = ( 1 << 0 ), // Accept All packets (promiscuous)
 };
 
 // Helpers to decode HWVERID in TCR (chipset versions)
