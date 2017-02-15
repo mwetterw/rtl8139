@@ -139,6 +139,22 @@ enum TSADx
     TSAD_GAP  = ( TSAD1 - TSAD0 ),
 };
 
+// RX Status Register (this is not really a register)
+// The status is in the RX packet header
+enum RSR
+{
+    RSR_MAR  = ( 1 << 15 ), // Multicast Address Received
+    RSR_PAM  = ( 1 << 14 ), // Physical Address Matched
+    RSR_BAR  = ( 1 << 13 ), // Broadcast Address Received
+    // Reserved 12 -> 6
+    RSR_ISE  = ( 1 << 5 ), // Invalid Symbol Error (100BASE-TX 5B/4B)
+    RSR_RUNT = ( 1 << 4 ), // Runt packet received (size < 64 bytes)
+    RSR_LONG = ( 1 << 3 ), // Long packet received (size > 4096 bytes)
+    RSR_CRC  = ( 1 << 2 ), // CRC error
+    RSR_FAE  = ( 1 << 1 ), // Frame Alignment Error
+    RSR_ROK  = ( 1 << 0 ), // Receive OK
+};
+
 // Command Register
 enum CR
 {
