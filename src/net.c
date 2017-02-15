@@ -19,6 +19,8 @@ static int r8139dn_net_set_mac_addr ( struct net_device * ndev, void * addr );
 static int r8139dn_net_set_mtu ( struct net_device * ndev, int mtu );
 
 static int _r8139dn_net_init_tx_ring ( struct r8139dn_priv * priv );
+static int _r8139dn_net_init_rx_ring ( struct r8139dn_priv * priv );
+static void _r8139dn_net_release_rings ( struct r8139dn_priv * priv );
 
 static int debug = -1;
 module_param ( debug, int, 0 );
@@ -49,6 +51,8 @@ int r8139dn_net_init ( struct pci_dev * pdev, void __iomem * mmio )
         return -ENOMEM;
     }
 
+    // If one day alloc_etherdev doesn't kzalloc anymore, we may kernel panic
+    // This would happen when calling _r8139dn_net_release_rings
     priv = netdev_priv ( ndev );
     priv -> msg_enable = netif_msg_init ( debug, R8139DN_MSG_ENABLE );
     priv -> pdev = pdev;
@@ -114,7 +118,14 @@ static int r8139dn_net_open ( struct net_device * ndev )
     err = _r8139dn_net_init_tx_ring ( priv );
     if ( err )
     {
-        goto err_init_tx_ring;
+        goto err_init_ring;
+    }
+
+    // Allocate RX DMA and initialize RX ring
+    err = _r8139dn_net_init_rx_ring ( priv );
+    if ( err )
+    {
+        goto err_init_ring;
     }
 
     // Issue a software reset
@@ -144,8 +155,10 @@ static int r8139dn_net_open ( struct net_device * ndev )
 
     return 0;
 
-err_init_tx_ring:
+err_init_ring:
+    _r8139dn_net_release_rings ( priv );
     free_irq ( irq, ndev );
+
     return err;
 }
 
@@ -375,9 +388,8 @@ static int r8139dn_net_close ( struct net_device * ndev )
     // Disable IRQ
     r8139dn_hw_disable_irq ( priv );
 
-    // Free TX DMA memory
-    dma_free_coherent ( & ( priv -> pdev -> dev ), R8139DN_TX_DMA_SIZE,
-            priv -> tx_ring.data [ 0 ], priv -> tx_ring.dma );
+    // Free all allocated DMA memory
+    _r8139dn_net_release_rings ( priv );
 
     // Unhook our handler from the IRQ line
     free_irq ( ndev -> irq, ndev );
@@ -475,4 +487,48 @@ static int _r8139dn_net_init_tx_ring ( struct r8139dn_priv * priv )
     }
 
     return 0;
+}
+
+// Allocate RX DMA memory and initialize RX ring
+static int _r8139dn_net_init_rx_ring ( struct r8139dn_priv * priv )
+{
+    void * rx_buffer_cpu;
+    dma_addr_t rx_buffer_dma;
+
+    // Allocate a DMA buffer so that hardware and driver share a common memory
+    // for packet reception. Later we'll pass the rx_buffer_dma address to the hardware
+    rx_buffer_cpu = dma_alloc_coherent ( & ( priv -> pdev -> dev ),
+            R8139DN_RX_DMA_SIZE, & rx_buffer_dma, GFP_KERNEL );
+
+    if ( ! rx_buffer_cpu )
+    {
+        return -ENOMEM;
+    }
+
+    priv -> rx_ring.dma = rx_buffer_dma;
+    priv -> rx_ring.data = rx_buffer_cpu;
+
+    // When alloc_etherdev is called, our priv data struct is zeroed (kzalloc)
+    // However we still need to reset this field (multiple ifup/ifdown)
+    priv -> rx_ring.cpu = 0;
+
+    return 0;
+}
+
+// Free all allocated DMA Memory (TX/RX)
+static void _r8139dn_net_release_rings ( struct r8139dn_priv * priv )
+{
+    // Free TX DMA memory
+    if ( priv -> tx_ring.data [ 0 ] )
+    {
+        dma_free_coherent ( & ( priv -> pdev -> dev ), R8139DN_TX_DMA_SIZE,
+                priv -> tx_ring.data [ 0 ], priv -> tx_ring.dma );
+    }
+
+    // Free RX DMA Memory
+    if ( priv -> rx_ring.data )
+    {
+        dma_free_coherent ( & ( priv -> pdev -> dev ), R8139DN_RX_DMA_SIZE,
+                priv -> rx_ring.data, priv -> rx_ring.dma );
+    }
 }

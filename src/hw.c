@@ -171,11 +171,16 @@ void r8139dn_hw_setup_rx ( struct r8139dn_priv * priv )
     // Disable Multiple Interrupt (we're going to disable early RX mode in RCR)
     r8139dn_w16 ( MULINT, 0 );
 
+    // Tell the hardware where to DMA (location of the RX buffer)
+    // We do this before enabling RX to avoid the NIC starting DMA before it knows the address
+    r8139dn_w32 ( RBSTART, priv -> rx_ring.dma );
+
     // Turn the receiver on
     r8139dn_w8 ( CR, cr | CR_RE );
 
     // Set up the RX settings
-    r8139dn_w32 ( RCR, RCR_MXDMA_1024 | RCR_APM | RCR_AB );
+    // We want to receive broadcast frames as well as frames for our own MAC
+    r8139dn_w32 ( RCR, RCR_MXDMA_1024 | RCR_APM | RCR_AB | RCR_RBLEN_65552 );
 }
 
 // Disable transceiver (TX & RX)

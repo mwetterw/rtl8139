@@ -40,6 +40,10 @@ enum
 #define R8139DN_TX_DESC_SIZE R8139DN_MAX_ETH_SIZE
 #define R8139DN_TX_DMA_SIZE ( R8139DN_TX_DESC_SIZE * R8139DN_TX_DESC_NB )
 
+// RX DMA size
+#define R8139DN_RX_DMA_SIZE 65536
+
+
 // Macros to read / write the network card registers
 #define r8139dn_r8(reg)  ioread8  ( priv->mmio + ( reg ) )
 #define r8139dn_r16(reg) ioread16 ( priv->mmio + ( reg ) )
