@@ -35,8 +35,8 @@ enum r8139dn_hw_regs
     ERBCR     = 0x34, // Early RX Byte Count Register
     ERSR      = 0x36, // Early RX Status Register
     CR        = 0x37, // Command Register
-    CAPR      = 0x38, // Current Address of Packet Read (driver pos for RX)
-    CBR       = 0x3a, // Current Buffer Address (Total RX byte count)
+    CAPR      = 0x38, // Current Address of Packet Read (driver total RX byte count)
+    CBR       = 0x3a, // Current Buffer Address (hardware total RX byte count)
     IMR       = 0x3c, // Interrupt Mask Register
     ISR       = 0x3e, // Interrupt Status Register
     TCR       = 0x40, // TX Configuration Register
@@ -229,7 +229,7 @@ enum RCR
     RCR_RXFTH_SHIFT     = 13,
         RCR_RXFTH       = ( 7 << RCR_RXFTH_SHIFT ),
     // RX Buffer Length
-    // Size = 2^(3 + RXLEN) * 1024 + 16 bytes
+    // Size = 2^(3 + RBLEN) * 1024 + 16 bytes
     RCR_RBLEN_SHIFT     = 11,
         RCR_RBLEN_8208  = ( 0 << RCR_RBLEN_SHIFT ),
         RCR_RBLEN_16400 = ( 1 << RCR_RBLEN_SHIFT ),

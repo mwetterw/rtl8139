@@ -368,7 +368,42 @@ static void _r8139dn_net_interrupt_tx ( struct net_device * ndev )
 // We retrieve them from the buffer, create a skbbuf and give them to the kernel.
 static void _r8139dn_net_interrupt_rx ( struct net_device * ndev )
 {
+    struct r8139dn_priv * priv = netdev_priv ( ndev );
+    struct r8139dn_rx_ring * rx_ring = & priv -> rx_ring;
+    struct r8139dn_rx_header * rxh;
+    u16 rx_offset;
+
+    // Let's break the build if the assumptions we heavily rely on are wrong
+    BUILD_BUG_ON ( sizeof ( struct r8139dn_rx_header ) != R8139DN_RX_HEADER_SIZE );
+    BUILD_BUG_ON_NOT_POWER_OF_2 ( R8139DN_RX_BUFLEN );
+
     netdev_dbg ( ndev, "  RX homework!\n" );
+
+    // While the RX Buffer is not empty
+    while ( ! ( r8139dn_r8 ( CR ) & CR_BUFE ) )
+    {
+        /*   RTL RX Header          802.3 Ethernet Frame          32 bit Align
+         * <---------------><------------------------------------><---------->
+         *  -----------------------------------------------------------------
+         * | STATUS | SIZE | DMAC | SMAC | LEN/TYPE | DATA | FCS | ALIGNMENT |
+         *  -----------------------------------------------------------------
+         *     2       2       6      6       2       /~/     4      [0;3]
+         */
+
+        // Compute our position in the RX ring buffer
+        // Avoid expensive % operator (equivalent to cpu % R8139DN_RX_BUFLEN)
+        rx_offset = ( rx_ring -> cpu ) & ( R8139DN_RX_BUFLEN - 1 );
+
+        // Fetch the RX Header to get the status and the size of the frame
+        rxh = ( struct r8139dn_rx_header * ) ( rx_ring -> data + rx_offset );
+
+        netdev_dbg ( ndev, "    CBR: %u, CAPR: %u, Offset: %u, Size: %u, Status: 0x%04x\n",
+                r8139dn_r16 ( CBR ), r8139dn_r16 ( CAPR ), rx_offset, rxh -> size, rxh -> status );
+
+        // Commit to the hardware our new position in the ring buffer
+        rx_ring -> cpu += R8139DN_RX_ALIGN ( rxh -> size + R8139DN_RX_HEADER_SIZE );
+        r8139dn_w16 ( CAPR, rx_ring -> cpu - R8139DN_RX_PAD );
+    }
 }
 
 // The kernel calls this when interface is set down

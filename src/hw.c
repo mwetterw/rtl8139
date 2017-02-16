@@ -180,7 +180,7 @@ void r8139dn_hw_setup_rx ( struct r8139dn_priv * priv )
 
     // Set up the RX settings
     // We want to receive broadcast frames as well as frames for our own MAC
-    r8139dn_w32 ( RCR, RCR_MXDMA_1024 | RCR_APM | RCR_AB | RCR_RBLEN_65552 );
+    r8139dn_w32 ( RCR, RCR_MXDMA_1024 | RCR_APM | RCR_AB | RCR_RBLEN_16400 );
 }
 
 // Disable transceiver (TX & RX)

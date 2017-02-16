@@ -41,7 +41,19 @@ enum
 #define R8139DN_TX_DMA_SIZE ( R8139DN_TX_DESC_SIZE * R8139DN_TX_DESC_NB )
 
 // RX DMA size
-#define R8139DN_RX_DMA_SIZE 65536
+#define R8139DN_RX_PAD 16
+#define R8139DN_RX_BUFLEN 16384
+#define R8139DN_RX_DMA_SIZE ( R8139DN_RX_BUFLEN + R8139DN_RX_PAD )
+#define R8139DN_RX_HEADER_SIZE 4
+#define R8139DN_RX_ALIGN_ADD 3
+#define R8139DN_RX_ALIGN_MASK ( ~R8139DN_RX_ALIGN_ADD )
+#define R8139DN_RX_ALIGN(val) ( ( ( val ) + R8139DN_RX_ALIGN_ADD ) & R8139DN_RX_ALIGN_MASK )
+
+struct r8139dn_rx_header
+{
+    u16 status;
+    u16 size;
+};
 
 
 // Macros to read / write the network card registers

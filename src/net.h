@@ -34,7 +34,7 @@ struct r8139dn_priv
         unsigned char * data;
         dma_addr_t dma;
 
-        int cpu;
+        u16 cpu;
     } rx_ring;
 
     u32 tx_flags;
