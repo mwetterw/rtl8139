@@ -65,7 +65,11 @@ int r8139dn_net_init ( struct pci_dev * pdev, void __iomem * mmio )
     SET_NETDEV_DEV ( ndev, & ( pdev -> dev ) );
 
     // Ask the network card to do a soft reset
-    r8139dn_hw_reset ( priv );
+    err = r8139dn_hw_reset ( priv );
+    if ( err )
+    {
+        goto err_init_hw_reset;
+    }
 
     // Retrieve MAC address from device's EEPROM and tell the kernel
     r8139dn_hw_eeprom_mac_to_kernel ( ndev );
@@ -77,8 +81,7 @@ int r8139dn_net_init ( struct pci_dev * pdev, void __iomem * mmio )
     err = register_netdev ( ndev );
     if ( err )
     {
-        free_netdev ( ndev );
-        return err;
+        goto err_init_register_netdev;
     }
 
     // From the PCI device, we want to be able to retrieve our network device
@@ -91,6 +94,11 @@ int r8139dn_net_init ( struct pci_dev * pdev, void __iomem * mmio )
     }
 
     return 0;
+
+err_init_hw_reset:
+err_init_register_netdev:
+    free_netdev ( ndev );
+    return err;
 }
 
 // The kernel calls this when interface is set up
@@ -118,18 +126,22 @@ static int r8139dn_net_open ( struct net_device * ndev )
     err = _r8139dn_net_init_tx_ring ( priv );
     if ( err )
     {
-        goto err_init_ring;
+        goto err_open_init_ring;
     }
 
     // Allocate RX DMA and initialize RX ring
     err = _r8139dn_net_init_rx_ring ( priv );
     if ( err )
     {
-        goto err_init_ring;
+        goto err_open_init_ring;
     }
 
     // Issue a software reset
-    r8139dn_hw_reset ( priv );
+    err = r8139dn_hw_reset ( priv );
+    if ( err )
+    {
+        goto err_open_hw_reset;
+    }
 
     // Restore what the kernel thinks our MAC is to our IDR registers
     r8139dn_hw_kernel_mac_to_regs ( ndev );
@@ -155,7 +167,8 @@ static int r8139dn_net_open ( struct net_device * ndev )
 
     return 0;
 
-err_init_ring:
+err_open_hw_reset:
+err_open_init_ring:
     _r8139dn_net_release_rings ( priv );
     free_irq ( irq, ndev );
 

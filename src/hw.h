@@ -8,7 +8,7 @@
 
 struct r8139dn_priv;
 
-void r8139dn_hw_reset ( struct r8139dn_priv * priv );
+int r8139dn_hw_reset ( struct r8139dn_priv * priv );
 void r8139dn_hw_eeprom_mac_to_kernel ( struct net_device * ndev );
 void r8139dn_hw_kernel_mac_to_regs ( struct net_device * ndev );
 void r8139dn_hw_setup_tx ( struct r8139dn_priv * priv );

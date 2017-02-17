@@ -8,7 +8,7 @@ static u16 _r8139dn_hw_eeprom_read ( struct r8139dn_priv * priv, u8 word_addr );
 // This will disable TX and RX, reset FIFOs,
 // reset TX buffer at TSAD0, and set BUFE (RX buffer is empty)
 // Note: IDR0 -> 5 and MAR0 -> 5 are not reset
-void r8139dn_hw_reset ( struct r8139dn_priv * priv )
+int r8139dn_hw_reset ( struct r8139dn_priv * priv )
 {
     int i = 1000;
 
@@ -27,10 +27,17 @@ void r8139dn_hw_reset ( struct r8139dn_priv * priv )
         udelay ( 1 );
     }
 
+    if ( ! i )
+    {
+        return -ETIMEDOUT;
+    }
+
     // Resetting the chip also resets hardware TX pointer to TSAD0
     // So we need to keep track of this, and we also reset our own position
     priv -> tx_ring.hw = 0;
     priv -> tx_ring.cpu = 0;
+
+    return 0;
 }
 
 // Read a word (16 bits) from the EEPROM at word_addr address
