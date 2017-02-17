@@ -15,6 +15,9 @@ struct r8139dn_priv
     struct pci_dev * pdev;
     void __iomem * mmio;
 
+    // Interrupts we are interested in
+    u16 interrupts;
+
     struct r8139dn_tx_ring
     {
         // Index of the ring's buffers addresses (in CPU virtual kernel memory space)

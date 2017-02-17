@@ -26,6 +26,12 @@ static int debug = -1;
 module_param ( debug, int, 0 );
 MODULE_PARM_DESC ( debug, "Debug setting" );
 
+enum { TX = 1, RX = 2, };
+static int txrx = ( TX | RX );
+module_param ( txrx, int, 0 );
+MODULE_PARM_DESC ( txrx, "Activated paths: TX (0x1) | RX (0x2)" );
+
+
 // r8139dn_ops stores functors to our driver actions,
 // so that the kernel can call the relevant one when needed
 static struct net_device_ops r8139dn_ops =
@@ -88,6 +94,11 @@ int r8139dn_net_init ( struct pci_dev * pdev, void __iomem * mmio )
     // So we store it. Later we can retrieve it with pci_get_drvdata
     pci_set_drvdata ( pdev, ndev );
 
+    if ( ! ( txrx & ( TX | RX ) ) )
+    {
+        netdev_warn ( ndev, "Neither TX nor RX is activated. Is this really what you want?\n" );
+    }
+
     if ( netif_msg_probe ( priv ) )
     {
         netdev_info ( ndev, "Ready!\n" );
@@ -121,20 +132,7 @@ static int r8139dn_net_open ( struct net_device * ndev )
         return err;
     }
     ndev -> irq = irq;
-
-    // Allocate TX DMA and initialize TX ring
-    err = _r8139dn_net_init_tx_ring ( priv );
-    if ( err )
-    {
-        goto err_open_init_ring;
-    }
-
-    // Allocate RX DMA and initialize RX ring
-    err = _r8139dn_net_init_rx_ring ( priv );
-    if ( err )
-    {
-        goto err_open_init_ring;
-    }
+    priv -> interrupts = INT_LNKCHG_PUN;
 
     // Issue a software reset
     err = r8139dn_hw_reset ( priv );
@@ -146,21 +144,50 @@ static int r8139dn_net_open ( struct net_device * ndev )
     // Restore what the kernel thinks our MAC is to our IDR registers
     r8139dn_hw_kernel_mac_to_regs ( ndev );
 
-    // Enable TX, load default TX settings
-    // and inform the hardware where our shared memory is (DMA)
-    r8139dn_hw_setup_tx ( priv );
-
-    // Enable RX, load default RX settings
-    r8139dn_hw_setup_rx ( priv );
-
     // Assume link is down unless proven otherwise
     // Then, make an initial link check to find out
     netif_carrier_off ( ndev );
     _r8139dn_net_check_link ( ndev );
 
-    // Inform the kernel, that right after the completion of this ifup,
-    // he can give us packets immediately: we are ready to be his postman!
-    netif_start_queue ( ndev );
+    if ( txrx & TX )
+    {
+        // Allocate TX DMA and initialize TX ring
+        err = _r8139dn_net_init_tx_ring ( priv );
+        if ( err )
+        {
+            goto err_open_init_ring;
+        }
+
+        // Enable TX, load default TX settings
+        // and inform the hardware where our shared memory is (DMA)
+        r8139dn_hw_setup_tx ( priv );
+
+        // Inform the kernel, that right after the completion of this ifup,
+        // he can give us packets immediately: we are ready to be his postman!
+        netif_start_queue ( ndev );
+
+        priv -> interrupts |= INT_TX;
+    }
+    else
+    {
+        // Prevent the kernel from giving us packets as we're not willing to TX
+        netif_stop_queue ( ndev );
+    }
+
+    if ( txrx & RX )
+    {
+        // Allocate RX DMA and initialize RX ring
+        err = _r8139dn_net_init_rx_ring ( priv );
+        if ( err )
+        {
+            goto err_open_init_ring;
+        }
+
+        // Enable RX, load default RX settings and inform hardware where to DMA
+        r8139dn_hw_setup_rx ( priv );
+
+        priv -> interrupts |= INT_RX;
+    }
 
     // Enable interrupts so that hardware can notify us about important events
     r8139dn_hw_enable_irq ( priv );
@@ -272,6 +299,9 @@ static irqreturn_t r8139dn_net_interrupt ( int irq, void * dev )
 
     // Acknowledge IRQ as fast as possible
     r8139dn_w16 ( ISR, isr );
+
+    // Only care about interrupts we are interested in
+    isr &= priv -> interrupts;
 
     // The link status changed.
     if ( isr & INT_LNKCHG_PUN )
@@ -430,8 +460,11 @@ static int r8139dn_net_close ( struct net_device * ndev )
         netdev_info ( ndev, "Bringing interface down...\n" );
     }
 
-    // Disable TX and RX
-    r8139dn_hw_disable_transceiver ( priv );
+    if ( txrx & ( TX | RX ) )
+    {
+        // Disable TX and RX
+        r8139dn_hw_disable_transceiver ( priv );
+    }
 
     // Disable IRQ
     r8139dn_hw_disable_irq ( priv );
