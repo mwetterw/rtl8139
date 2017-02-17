@@ -231,10 +231,10 @@ enum RCR
     // RX Buffer Length
     // Size = 2^(3 + RBLEN) * 1024 + 16 bytes
     RCR_RBLEN_SHIFT     = 11,
-        RCR_RBLEN_8208  = ( 0 << RCR_RBLEN_SHIFT ),
-        RCR_RBLEN_16400 = ( 1 << RCR_RBLEN_SHIFT ),
-        RCR_RBLEN_32784 = ( 2 << RCR_RBLEN_SHIFT ),
-        RCR_RBLEN_65552 = ( 3 << RCR_RBLEN_SHIFT ),
+        RCR_RBLEN_8K    = ( 0 << RCR_RBLEN_SHIFT ),
+        RCR_RBLEN_16K   = ( 1 << RCR_RBLEN_SHIFT ),
+        RCR_RBLEN_32K   = ( 2 << RCR_RBLEN_SHIFT ),
+        RCR_RBLEN_64K   = ( 3 << RCR_RBLEN_SHIFT ),
     // Max RX DMA Burst Size
     // Burst size = 2^(4 + MXDMA) bytes. 7: unlimited burst size
     RCR_MXDMA_SHIFT     = 8,
