@@ -414,6 +414,8 @@ static void _r8139dn_net_interrupt_rx ( struct net_device * ndev )
     struct r8139dn_priv * priv = netdev_priv ( ndev );
     struct r8139dn_rx_ring * rx_ring = & priv -> rx_ring;
     struct r8139dn_rx_header * rxh;
+    struct sk_buff * skb;
+    int len, tail_frag_size;
     u16 rx_offset;
 
     // Let's break the build if the assumptions we heavily rely on are wrong
@@ -442,6 +444,35 @@ static void _r8139dn_net_interrupt_rx ( struct net_device * ndev )
 
         netdev_dbg ( ndev, "    CBR: %u, CAPR: %u, Offset: %u, Size: %u, Status: 0x%04x\n",
                 r8139dn_r16 ( CBR ), r8139dn_r16 ( CAPR ), rx_offset, rxh -> size, rxh -> status );
+
+        // Don't give the Ethernet checksum to the kernel
+        len = rxh -> size - ETH_FCS_LEN;
+
+        // Allocate an skbuff and add 2 bytes at the beginning to align for IP header
+        skb = netdev_alloc_skb_ip_align ( ndev, len );
+
+        // Copy the Ethernet frame to the skbuff
+        if ( skb )
+        {
+            // The frame spans the end of the buffer, we need to copy the two parts separately
+            if ( rx_offset + R8139DN_RX_HEADER_SIZE + len > R8139DN_RX_BUFLEN )
+            {
+                tail_frag_size = R8139DN_RX_BUFLEN - ( rx_offset + R8139DN_RX_HEADER_SIZE );
+                skb_copy_to_linear_data ( skb, rxh + 1, tail_frag_size );
+                skb_copy_to_linear_data_offset ( skb, tail_frag_size, rx_ring -> data, len - tail_frag_size );
+            }
+            // The frame doesn't span the end of the buffer: it is in one piece
+            else
+            {
+                skb_copy_to_linear_data ( skb, rxh + 1, len );
+            }
+
+            skb_put ( skb, len );
+            skb -> protocol = eth_type_trans ( skb, ndev );
+
+            // Feed the kernel's IP stack with our freshly RXed Ethernet frame!
+            netif_rx ( skb );
+        }
 
         // Commit to the hardware our new position in the ring buffer
         rx_ring -> cpu += R8139DN_RX_ALIGN ( rxh -> size + R8139DN_RX_HEADER_SIZE );
