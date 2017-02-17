@@ -26,10 +26,10 @@ static int debug = -1;
 module_param ( debug, int, 0 );
 MODULE_PARM_DESC ( debug, "Debug setting" );
 
-enum { TX = 1, RX = 2, };
+enum { TX = 1, RX = 2, LBK = 4 };
 static int txrx = ( TX | RX );
 module_param ( txrx, int, 0 );
-MODULE_PARM_DESC ( txrx, "Activated paths: TX (0x1) | RX (0x2)" );
+MODULE_PARM_DESC ( txrx, "TXRX Mode: TX (0x1) | RX (0x2) | Loopback (0x4)" );
 
 
 // r8139dn_ops stores functors to our driver actions,
@@ -133,6 +133,7 @@ static int r8139dn_net_open ( struct net_device * ndev )
     }
     ndev -> irq = irq;
     priv -> interrupts = INT_LNKCHG_PUN;
+    priv -> tcr = TCR_IFG_DEFAULT | TCR_MXDMA_1024;
 
     // Issue a software reset
     err = r8139dn_hw_reset ( priv );
@@ -156,6 +157,12 @@ static int r8139dn_net_open ( struct net_device * ndev )
         if ( err )
         {
             goto err_open_init_ring;
+        }
+
+        if ( txrx & LBK )
+        {
+            netdev_info ( ndev, "Enabling Loopback mode\n" );
+            priv -> tcr |= TCR_LBK_ENABLE;
         }
 
         // Enable TX, load default TX settings

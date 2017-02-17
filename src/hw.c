@@ -157,7 +157,7 @@ void r8139dn_hw_setup_tx ( struct r8139dn_priv * priv )
     r8139dn_w8 ( CR, cr | CR_TE );
 
     // Set up the TX settings
-    r8139dn_w32 ( TCR, TCR_IFG_DEFAULT | TCR_MXDMA_1024 );
+    r8139dn_w32 ( TCR, priv -> tcr );
 
     // We want 8 + (3 x 32) bytes = 104 bytes of early TX threshold
     // It means we put data on the wire only once FIFO has reached this threshold

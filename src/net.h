@@ -40,6 +40,7 @@ struct r8139dn_priv
         u16 cpu;
     } rx_ring;
 
+    u32 tcr;
     u32 tx_flags;
 };
 
