@@ -155,6 +155,16 @@ enum RSR
     RSR_ROK  = ( 1 << 0 ), // Receive OK
 };
 
+// Early RX Status Register
+enum ERSR
+{
+    // Reserved 7 -> 4
+    ERSR_ERGOOD = ( 1 << 3 ), // Early RX Good Packet
+    ERSR_ERBAD  = ( 1 << 2 ), // Early RX Bad Packet
+    ERSR_EROVW  = ( 1 << 1 ), // Early RX OverWrite
+    ERSR_EROK   = ( 1 << 0 ), // Set when ERBCR > RCR_ERTH. Auto cleared. Triggers ROK/RER
+};
+
 // Command Register
 enum CR
 {
